@@ -33,6 +33,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1e293
 .nav:hover{background:#1e293b;color:#cbd5e1}
 .nav.active{background:#1e293b;color:#fff;border-left-color:#3b82f6}
 .nav-ic{font-size:15px;width:18px;text-align:center}
+.nav-badge{display:none;margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;line-height:18px;text-align:center;border-radius:9px;padding:0 5px}
 .sb-user{margin-top:auto;padding:14px 20px;border-top:1px solid #1e293b;display:flex;align-items:center;gap:10px}
 .sb-user-av{width:32px;height:32px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#94a3b8}
 .sb-user-info{flex:1;min-width:0}
@@ -212,7 +213,7 @@ textarea{min-height:80px;resize:vertical}
     </div>
     <div class="sb-sec">メニュー</div>
     <div class="nav active" data-page="dashboard">
-      <span class="nav-ic">🏠</span>ダッシュボード
+      <span class="nav-ic">🏠</span>ダッシュボード<span class="nav-badge" id="nav-alert-badge"></span>
     </div>
     <div class="nav" data-page="employees">
       <span class="nav-ic">👥</span>社員マスタ
@@ -804,6 +805,7 @@ const PW = 'fuji9115';
 const LS_EMP = 'mobile_kanri_employees';
 const LS_REQ = 'mobile_kanri_requests';
 const LS_VENDORS = 'mobile_kanri_vendors';
+const LS_CONFIG = 'mobile_kanri_config';
 const LS_BACKUP_TS = 'mobile_kanri_last_backup';
 // ★本番運用を始めたら false にすると、初回のサンプルデータ登録を行いません
 const ENABLE_SAMPLE_DATA = true;
@@ -869,6 +871,117 @@ function loadVendors(){
 }
 function saveVendors(data){
   localStorage.setItem(LS_VENDORS,JSON.stringify(data));
+}
+function loadConfig(){
+  try{
+    const c=JSON.parse(localStorage.getItem(LS_CONFIG)||'{}');
+    return {renewCycle:(c.renewCycle!=null?c.renewCycle:24), alertMonths:(c.alertMonths!=null?c.alertMonths:3)};
+  }catch{ return {renewCycle:24, alertMonths:3}; }
+}
+function saveConfig(c){ localStorage.setItem(LS_CONFIG,JSON.stringify(c)); }
+
+// ===== 契約更新の判定 =====
+// 更新予定 = 契約月(YYYY-MM) ＋ サイクル(月)。戻り値: {monthsLeft(負=超過), renewYM}
+function renewalInfo(contract_date, cycle){
+  if(!contract_date) return null;
+  const parts=String(contract_date).split('-').map(Number);
+  const y=parts[0], m=parts[1];
+  if(!y||!m) return null;
+  let ry=y, rm=m+(cycle||0);
+  ry+=Math.floor((rm-1)/12);
+  rm=((rm-1)%12)+1;
+  const now=new Date();
+  const monthsLeft=(ry-now.getFullYear())*12+(rm-(now.getMonth()+1));
+  return {monthsLeft, renewYM:ry+'-'+String(rm).padStart(2,'0')};
+}
+// 通知対象（超過＋しきい値以内）の一覧
+function getRenewalAlerts(){
+  const cfg=loadConfig();
+  const list=[];
+  loadEmps().forEach(e=>{
+    const info=renewalInfo(e.contract_date, cfg.renewCycle);
+    if(info && info.monthsLeft<=cfg.alertMonths) list.push({e, monthsLeft:info.monthsLeft, renewYM:info.renewYM});
+  });
+  list.sort((a,b)=>a.monthsLeft-b.monthsLeft);
+  return {cfg, overdue:list.filter(x=>x.monthsLeft<0), soon:list.filter(x=>x.monthsLeft>=0)};
+}
+// サイドバーのバッジ更新（他画面からも気づけるように）
+function updateAlertBadge(){
+  const b=document.getElementById('nav-alert-badge');
+  if(!b) return;
+  const a=getRenewalAlerts();
+  const n=a.overdue.length+a.soon.length;
+  if(n>0){ b.textContent=n; b.style.display='inline-block'; }
+  else { b.style.display='none'; }
+}
+function updateRenewConfig(){
+  const cyc=parseInt(document.getElementById('cfg-cycle').value,10);
+  const alt=parseInt(document.getElementById('cfg-alert').value,10);
+  const cfg=loadConfig();
+  if(!isNaN(cyc)&&cyc>=0) cfg.renewCycle=cyc;
+  if(!isNaN(alt)&&alt>=0) cfg.alertMonths=alt;
+  saveConfig(cfg);
+  renderDashboard();
+}
+
+function renderContractAlerts(){
+  const alertEl=document.getElementById('dash-contract-alert');
+  if(!alertEl) return;
+  alertEl.innerHTML='';
+  const {cfg, overdue, soon}=getRenewalAlerts();
+
+  const card=document.createElement('div');
+  card.className='card';
+  card.style.cssText='margin-bottom:16px'+((overdue.length)?';border-left:4px solid #ef4444':((soon.length)?';border-left:4px solid #f59e0b':''));
+
+  const head=document.createElement('div');
+  head.style.cssText='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px';
+  const title=document.createElement('div');
+  title.style.cssText='font-weight:700;font-size:14px;color:#0f172a';
+  title.textContent='⏰ 契約更新アラート';
+  head.appendChild(title);
+  const cfgWrap=document.createElement('div');
+  cfgWrap.style.cssText='font-size:12px;color:#64748b;display:flex;align-items:center;gap:4px;flex-wrap:wrap';
+  cfgWrap.innerHTML='更新サイクル <input id="cfg-cycle" type="number" min="0" value="'+cfg.renewCycle+'" style="width:58px;padding:4px 6px" onchange="updateRenewConfig()"> ヶ月 ／ <input id="cfg-alert" type="number" min="0" value="'+cfg.alertMonths+'" style="width:50px;padding:4px 6px" onchange="updateRenewConfig()"> ヶ月前から通知';
+  head.appendChild(cfgWrap);
+  card.appendChild(head);
+
+  const note=document.createElement('div');
+  note.style.cssText='font-size:11.5px;color:#94a3b8;margin-bottom:8px';
+  note.textContent='※「契約月＋'+cfg.renewCycle+'ヶ月」を更新予定として計算。超過＝更新時期を過ぎています（更新済みなら契約月を新しい月に直してください）。';
+  card.appendChild(note);
+
+  function section(items, isOverdue){
+    if(!items.length) return;
+    const h=document.createElement('div');
+    h.style.cssText='font-weight:700;font-size:12.5px;margin:10px 0 4px;color:'+(isOverdue?'#991b1b':'#b45309');
+    h.textContent=(isOverdue?'🔴 更新時期を過ぎている（要確認・要更新）':'🟡 まもなく更新')+'（'+items.length+'件）';
+    card.appendChild(h);
+    items.forEach(({e,monthsLeft,renewYM})=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;gap:12px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid #f1f5f9';
+      let label;
+      if(monthsLeft<0) label=(-monthsLeft)+'ヶ月 超過';
+      else if(monthsLeft===0) label='今月が更新';
+      else label='あと'+monthsLeft+'ヶ月';
+      const c1=document.createElement('span'); c1.style.cssText='min-width:130px;font-weight:600'; c1.textContent=e.name;
+      const c2=document.createElement('span'); c2.style.cssText='min-width:90px;color:#64748b'; c2.textContent=e.dept||'';
+      const c3=document.createElement('span'); c3.style.cssText='flex:1;min-width:150px;font-size:12px;color:#64748b'; c3.textContent='契約'+(e.contract_date||'-')+' → 更新予定'+renewYM;
+      const c4=document.createElement('span'); c4.style.cssText='font-weight:700;white-space:nowrap;color:'+(isOverdue?'#ef4444':'#f59e0b'); c4.textContent=label;
+      row.appendChild(c1); row.appendChild(c2); row.appendChild(c3); row.appendChild(c4);
+      card.appendChild(row);
+    });
+  }
+  section(overdue, true);
+  section(soon, false);
+
+  if(!overdue.length && !soon.length){
+    const ok=document.createElement('div');
+    ok.style.cssText='font-size:13px;color:#16a34a;padding:4px 0';
+    ok.textContent='✅ 現在、更新時期が近い／超過している端末はありません。';
+    card.appendChild(ok);
+  }
+  alertEl.appendChild(card);
 }
 
 // ===== サンプルデータ初期化 =====
@@ -968,41 +1081,9 @@ function renderDashboard(){
   document.getElementById('stat-ordered').textContent=reqs.filter(r=>r.status==='ordered').length;
   document.getElementById('stat-done').textContent=reqs.filter(r=>r.status==='done'&&r.created_at&&r.created_at.startsWith(String(year))).length;
 
-  // ===== 契約更新アラート（3ヶ月以内＋超過を上部に表示） =====
-  const alertEl=document.getElementById('dash-contract-alert');
-  if(alertEl){
-    alertEl.innerHTML='';
-    const now=new Date();
-    const soon=emps.map(e=>{
-      if(!e.contract_date) return null;
-      const parts=e.contract_date.split('-').map(Number);
-      const y=parts[0], m=parts[1];
-      if(!y||!m) return null;
-      const months=(y-now.getFullYear())*12+(m-(now.getMonth()+1));
-      return {e,months};
-    }).filter(x=>x&&x.months<=3).sort((a,b)=>a.months-b.months);
-    if(soon.length){
-      const card=document.createElement('div');
-      card.className='card';
-      card.style.cssText='border-left:4px solid #f59e0b;margin-bottom:16px';
-      const h=document.createElement('div');
-      h.style.cssText='font-weight:700;color:#b45309;margin-bottom:10px;font-size:14px';
-      h.textContent='⏰ 契約更新が近い社員（'+soon.length+'名）';
-      card.appendChild(h);
-      soon.forEach(({e,months})=>{
-        const row=document.createElement('div');
-        row.style.cssText='display:flex;gap:12px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid #f1f5f9';
-        const label = months<0?'更新時期 超過' : (months===0?'今月が期限' : 'あと'+months+'ヶ月');
-        const c1=document.createElement('span'); c1.style.cssText='min-width:130px;font-weight:600'; c1.textContent=e.name;
-        const c2=document.createElement('span'); c2.style.cssText='min-width:90px;color:#64748b'; c2.textContent=e.dept||'';
-        const c3=document.createElement('span'); c3.style.cssText='min-width:90px;font-family:monospace'; c3.textContent=e.contract_date;
-        const c4=document.createElement('span'); c4.style.cssText='font-weight:700;color:'+(months<=0?'#ef4444':'#f59e0b'); c4.textContent=label;
-        row.appendChild(c1); row.appendChild(c2); row.appendChild(c3); row.appendChild(c4);
-        card.appendChild(row);
-      });
-      alertEl.appendChild(card);
-    }
-  }
+  // ===== 契約更新アラート（超過＋まもなく を分けて表示） =====
+  renderContractAlerts();
+  updateAlertBadge();
 
   const tbody=document.getElementById('dash-recent-tbody');
   const recent=[...reqs].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,5);
@@ -1061,17 +1142,20 @@ function renderEmployees(){
     tr.appendChild(td);
     tbody.appendChild(tr);
   } else {
+    const cycle=loadConfig().renewCycle;
     filtered.forEach(e=>{
       const tr=document.createElement('tr');
-      // 契約更新の色
+      // 契約更新の色（契約月＋サイクルで更新予定を計算）
       const cd=e.contract_date||'';
-      let cdSpan='<span>'+esc(cd)+'</span>';
-      if(cd){
-        const [y,m]=cd.split('-').map(Number);
-        const now=new Date();
-        const months=(y-now.getFullYear())*12+(m-(now.getMonth()+1));
-        if(months<=2) cdSpan='<span style="color:#ef4444;font-weight:700">'+esc(cd)+' ⚠️</span>';
-        else if(months<=6) cdSpan='<span style="color:#f59e0b;font-weight:700">'+esc(cd)+'</span>';
+      let cdSpan='<span>'+esc(cd||'-')+'</span>';
+      const info=renewalInfo(cd, cycle);
+      if(info){
+        const ml=info.monthsLeft;
+        const base=esc(cd)+' <span style="font-size:11px;color:#94a3b8">→更新'+esc(info.renewYM)+'</span>';
+        if(ml<0) cdSpan='<span style="color:#ef4444;font-weight:700">'+base+' ⚠️超過</span>';
+        else if(ml<=2) cdSpan='<span style="color:#ef4444;font-weight:700">'+base+'</span>';
+        else if(ml<=6) cdSpan='<span style="color:#f59e0b;font-weight:700">'+base+'</span>';
+        else cdSpan='<span>'+base+'</span>';
       }
       tr.innerHTML=
         '<td><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">'+esc(e.employee_id)+'</code></td>'+
@@ -1087,6 +1171,7 @@ function renderEmployees(){
   }
   document.getElementById('emp-count').textContent=filtered.length+'件表示（全'+all.length+'件）';
   updateBackupStatus();
+  updateAlertBadge();
 }
 
 function openAddEmpModal(){
@@ -1297,7 +1382,8 @@ function exportBackup(){
     exported_at:new Date().toISOString(),
     employees:loadEmps(),
     requests:loadReqs(),
-    vendors:loadVendors()
+    vendors:loadVendors(),
+    config:loadConfig()
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
@@ -1324,6 +1410,7 @@ function importBackup(file){
     saveEmps(data.employees);
     saveReqs(data.requests);
     saveVendors(Array.isArray(data.vendors)?data.vendors:[]);
+    if(data.config) saveConfig(data.config);
     renderEmployees(); renderRequests(); renderVendors(); renderDashboard();
     showMsg(msgEl,'バックアップから復元しました（社員'+data.employees.length+'件 / 申請'+data.requests.length+'件）','success');
   };
