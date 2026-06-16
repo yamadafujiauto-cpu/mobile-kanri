@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>社用携帯管理システム | フジ自動車工業</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f5;color:#1e293b}
+.app{display:flex;min-height:100vh}
+
+/* ===== パスワードゲート ===== */
+#pw-gate{position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:9999}
+#pw-gate.hidden{display:none}
+.pw-box{background:#1e293b;border-radius:16px;padding:48px 40px;width:340px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.pw-lock{font-size:48px;margin-bottom:16px}
+.pw-box h2{color:#f1f5f9;font-size:20px;font-weight:700;margin-bottom:6px}
+.pw-box p{color:#64748b;font-size:13px;margin-bottom:28px}
+#pw-input{width:100%;padding:12px 16px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#f1f5f9;font-size:18px;text-align:center;letter-spacing:6px;margin-bottom:14px;outline:none}
+#pw-input:focus{border-color:#3b82f6}
+#pw-btn{width:100%;padding:12px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+#pw-btn:hover{background:#2563eb}
+#pw-err{color:#ef4444;font-size:13px;margin-top:12px;min-height:18px}
+
+/* ===== サイドバー ===== */
+.sidebar{width:240px;background:#0f172a;color:#fff;flex-shrink:0;display:flex;flex-direction:column;min-height:100vh}
+.sb-logo{padding:22px 20px 18px;border-bottom:1px solid #1e293b}
+.sb-logo h1{font-size:14px;font-weight:700;line-height:1.5;color:#f1f5f9}
+.sb-logo p{font-size:11px;color:#475569;margin-top:3px}
+.sb-sec{padding:14px 20px 6px;font-size:10px;color:#475569;font-weight:700;letter-spacing:1.2px;text-transform:uppercase}
+.nav{display:flex;align-items:center;gap:11px;padding:10px 20px;cursor:pointer;color:#94a3b8;font-size:13px;transition:.15s;border-left:3px solid transparent;user-select:none}
+.nav:hover{background:#1e293b;color:#cbd5e1}
+.nav.active{background:#1e293b;color:#fff;border-left-color:#3b82f6}
+.nav-ic{font-size:15px;width:18px;text-align:center}
+.sb-user{margin-top:auto;padding:14px 20px;border-top:1px solid #1e293b;display:flex;align-items:center;gap:10px}
+.sb-user-av{width:32px;height:32px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#94a3b8}
+.sb-user-info{flex:1;min-width:0}
+.sb-user-name{font-size:13px;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-user-role{font-size:10px;color:#64748b;margin-top:1px}
+.sb-logout{cursor:pointer;color:#475569;font-size:12px;padding:4px;border-radius:4px;transition:.15s}
+.sb-logout:hover{color:#ef4444}
+
+/* ===== メインエリア ===== */
+.main{flex:1;padding:28px 32px;overflow-y:auto;max-height:100vh}
+.page{display:none}
+.page.active{display:block}
+.ph{margin-bottom:22px}
+.ph h2{font-size:21px;font-weight:800;color:#0f172a}
+.ph p{color:#64748b;font-size:13px;margin-top:4px}
+
+/* ===== 統計カード ===== */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.scard{background:#fff;border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.scard-em{font-size:22px;margin-bottom:6px}
+.scard-v{font-size:28px;font-weight:800;color:#0f172a}
+.scard-l{font-size:12px;color:#64748b;margin-top:2px}
+.scard-b{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:7px}
+.bb{background:#dbeafe;color:#1d4ed8}
+.by{background:#fef3c7;color:#b45309}
+.bg{background:#d1fae5;color:#065f46}
+.br{background:#fee2e2;color:#991b1b}
+
+/* ===== カード ===== */
+.card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:14px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.ct{font-size:15px;font-weight:700;color:#0f172a}
+
+/* ===== テーブル ===== */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 14px;background:#f8fafc;color:#64748b;font-weight:600;font-size:12px;border-bottom:2px solid #e2e8f0}
+td{padding:11px 14px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+tr:hover td{background:#fafafa}
+.tbl-empty{text-align:center;color:#94a3b8;padding:32px!important}
+
+/* ===== フォーム ===== */
+.fg{margin-bottom:16px}
+.fl{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px}
+.req{color:#ef4444;margin-left:3px}
+select,input[type=text],input[type=date],input[type=tel],textarea{
+  width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;transition:border-color .2s;outline:none;background:#fff;color:#1e293b;font-family:inherit}
+select:focus,input[type=text]:focus,input[type=date]:focus,input[type=tel]:focus,textarea:focus{border-color:#3b82f6}
+select:disabled,input:disabled,textarea:disabled{background:#f8fafc;color:#94a3b8;cursor:not-allowed}
+textarea{min-height:80px;resize:vertical}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* ===== ボタン ===== */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-primary{background:#3b82f6;color:#fff}
+.btn-primary:hover:not(:disabled){background:#2563eb}
+.btn-success{background:#10b981;color:#fff}
+.btn-success:hover:not(:disabled){background:#059669}
+.btn-warn{background:#f59e0b;color:#fff}
+.btn-warn:hover:not(:disabled){background:#d97706}
+.btn-danger{background:#ef4444;color:#fff}
+.btn-danger:hover:not(:disabled){background:#dc2626}
+.btn-ghost{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0}
+.btn-ghost:hover:not(:disabled){background:#e2e8f0}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-xs{padding:3px 9px;font-size:11px}
+
+/* ===== バッジ / ステータス ===== */
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.badge-pending{background:#fef3c7;color:#b45309}
+.badge-ordered{background:#dbeafe;color:#1d4ed8}
+.badge-done{background:#d1fae5;color:#065f46}
+.badge-rejected{background:#fee2e2;color:#991b1b}
+
+/* ===== アラート ===== */
+.alert{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px}
+.alert-warn{background:#fef3c7;border:1px solid #fde68a;color:#92400e}
+.alert-err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b}
+.alert-success{background:#d1fae5;border:1px solid #6ee7b7;color:#065f46}
+.alert-info{background:#dbeafe;border:1px solid #93c5fd;color:#1e40af}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+
+/* ===== モーダル ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:8000}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:16px;width:480px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);overflow:hidden}
+.modal-hdr{padding:20px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between}
+.modal-hdr h3{font-size:16px;font-weight:700;color:#0f172a}
+.modal-close{cursor:pointer;font-size:20px;color:#94a3b8;padding:2px;line-height:1;border:none;background:none;transition:.15s}
+.modal-close:hover{color:#475569}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px}
+
+/* ===== 照合セクション ===== */
+.verify-block{background:#f8fafc;border-radius:10px;padding:18px;margin-bottom:16px;border:1px solid #e2e8f0}
+.verify-block.match{border-color:#6ee7b7;background:#f0fdf4}
+.verify-block.mismatch{border-color:#fca5a5;background:#fff5f5}
+.verify-block .vb-label{font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px}
+.verify-block .vb-num{font-size:20px;font-weight:800;letter-spacing:2px;color:#0f172a}
+
+/* ===== 検索バー ===== */
+.search-bar{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.search-bar input{flex:1;max-width:280px}
+.filter-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.ftab{padding:6px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;transition:.15s}
+.ftab:hover{border-color:#94a3b8;color:#475569}
+.ftab.active{background:#3b82f6;border-color:#3b82f6;color:#fff}
+
+/* ===== 詳細パネル ===== */
+.detail-row{display:flex;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.detail-row:last-child{border:none}
+.detail-key{width:140px;color:#64748b;font-weight:600;flex-shrink:0}
+.detail-val{color:#1e293b;word-break:break-all}
+
+/* ===== チェックボックス ===== */
+.cb-wrap{display:flex;align-items:center;gap:8px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1.5px solid #e2e8f0;cursor:pointer;transition:.15s}
+.cb-wrap:hover{border-color:#3b82f6;background:#eff6ff}
+.cb-wrap input[type=checkbox]{width:16px;height:16px;accent-color:#3b82f6;cursor:pointer}
+.cb-wrap span{font-size:13px;color:#374151;font-weight:600}
+
+/* ===== インフォヒント ===== */
+.hint{font-size:11px;color:#94a3b8;margin-top:4px}
+
+/* ===== CSVインポート ===== */
+.import-area{border:2px dashed #e2e8f0;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:.2s;background:#fafafa}
+.import-area:hover{border-color:#3b82f6;background:#eff6ff}
+.import-area p{color:#64748b;font-size:13px;margin-top:8px}
+#csv-file-input{display:none}
+
+/* ===== 警告ハイライト ===== */
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+.shake{animation:shake .4s ease}
+.mismatch-3{border:2px solid #ef4444!important;background:#fff5f5!important}
+
+/* ===== スクロールバー ===== */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* ===== ユーティリティ ===== */
+.mt-12{margin-top:12px}
+.mt-16{margin-top:16px}
+.gap-8{gap:8px}
+.hidden{display:none!important}
+.text-right{text-align:right}
+.text-center{text-align:center}
+.fw700{font-weight:700}
+.text-xs{font-size:11px}
+.text-sm{font-size:12px}
+.text-muted{color:#64748b}
+</style>
+</head>
+<body>
+
+<!-- ===== パスワードゲート ===== -->
+<div id="pw-gate">
+  <div class="pw-box">
+    <div class="pw-lock">🔐</div>
+    <h2>社用携帯管理システム</h2>
+    <p>フジ自動車工業株式会社 総務課</p>
+    <input type="password" id="pw-input" placeholder="パスワードを入力" autocomplete="off" maxlength="20">
+    <button class="btn btn-primary" id="pw-btn" style="width:100%;justify-content:center">ログイン</button>
+    <div id="pw-err"></div>
+  </div>
+</div>
+
+<!-- ===== メインアプリ ===== -->
+<div class="app" id="app" style="display:none">
+
+  <!-- サイドバー -->
+  <div class="sidebar">
+    <div class="sb-logo">
+      <h1>📱 社用携帯<br>管理システム</h1>
+      <p>フジ自動車工業株式会社</p>
+    </div>
+    <div class="sb-sec">メニュー</div>
+    <div class="nav active" data-page="dashboard">
+      <span class="nav-ic">🏠</span>ダッシュボード
+    </div>
+    <div class="nav" data-page="employees">
+      <span class="nav-ic">👥</span>社員マスタ
+    </div>
+    <div class="nav" data-page="new-request">
+      <span class="nav-ic">📝</span>機種変更申請
+    </div>
+    <div class="nav" data-page="requests">
+      <span class="nav-ic">📋</span>申請一覧・管理
+    </div>
+    <div class="sb-user">
+      <div class="sb-user-av">総</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">総務課</div>
+        <div class="sb-user-role">管理者アカウント</div>
+      </div>
+      <div class="sb-logout" id="logout-btn" title="ログアウト">🚪</div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main">
+
+    <!-- ① ダッシュボード -->
+    <div class="page active" id="page-dashboard">
+      <div class="ph">
+        <h2>🏠 ダッシュボード</h2>
+        <p>社用携帯管理の概要を確認できます</p>
+      </div>
+      <div class="stats" id="dash-stats">
+        <div class="scard">
+          <div class="scard-em">👥</div>
+          <div class="scard-v" id="stat-emp">0</div>
+          <div class="scard-l">登録社員数</div>
+          <span class="scard-b bb">マスタ</span>
+        </div>
+        <div class="scard">
+          <div class="scard-em">📋</div>
+          <div class="scard-v" id="stat-pending">0</div>
+          <div class="scard-l">申請中</div>
+          <span class="scard-b by">pending</span>
+        </div>
+        <div class="scard">
+          <div class="scard-em">📦</div>
+          <div class="scard-v" id="stat-ordered">0</div>
+          <div class="scard-l">発注済</div>
+          <span class="scard-b bb">ordered</span>
+        </div>
+        <div class="scard">
+          <div class="scard-em">✅</div>
+          <div class="scard-v" id="stat-done">0</div>
+          <div class="scard-l">完了（今年）</div>
+          <span class="scard-b bg">done</span>
+        </div>
+      </div>
+      <div id="dash-contract-alert"></div>
+      <div class="card">
+        <div class="ch">
+          <span class="ct">📌 直近の申請（5件）</span>
+          <button class="btn btn-ghost btn-sm" onclick="navigate('requests')">すべて見る →</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>申請番号</th>
+              <th>社員番号</th>
+              <th>氏名</th>
+              <th>希望機種</th>
+              <th>申請日</th>
+              <th>ステータス</th>
+            </tr>
+          </thead>
+          <tbody id="dash-recent-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ② 社員マスタ -->
+    <div class="page" id="page-employees">
+      <div class="ph">
+        <h2>👥 社員マスタ</h2>
+        <p>社用携帯を所持する社員の情報を管理します</p>
+      </div>
+      <div class="card">
+        <div class="ch">
+          <span class="ct">CSVインポート / エクスポート</span>
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div>
+            <div class="fl">CSVインポート（UTF-8-BOM形式）</div>
+            <div class="import-area" id="csv-drop-area" onclick="document.getElementById('csv-file-input').click()">
+              <div style="font-size:28px">📂</div>
+              <p>クリックまたはCSVファイルをドロップ</p>
+              <p style="font-size:11px;color:#94a3b8;margin-top:4px">列: 社員番号,氏名,部署,携帯番号,端末,契約更新</p>
+            </div>
+            <input type="file" id="csv-file-input" accept=".csv">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;justify-content:flex-end">
+            <button class="btn btn-success" onclick="exportCSV()">📤 CSVエクスポート（バックアップ）</button>
+            <button class="btn btn-primary" onclick="openAddEmpModal()">➕ 新規追加</button>
+          </div>
+        </div>
+        <div id="csv-import-msg"></div>
+      </div>
+
+      <!-- データのバックアップ / 復元 -->
+      <div class="card">
+        <div class="ch">
+          <span class="ct">💾 データのバックアップ / 復元</span>
+          <span id="backup-status" class="hint" style="margin:0"></span>
+        </div>
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ️</span>
+          <div>このアプリのデータは<strong>このPC・このブラウザの中だけ</strong>に保存されます。PCの故障やキャッシュ削除で消える可能性があるため、<strong>定期的にバックアップ</strong>を取り、社内共有フォルダ等に保管してください。</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+          <button class="btn btn-primary" onclick="exportBackup()">💾 バックアップを書き出す（JSON）</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('backup-file-input').click()">📥 バックアップから復元</button>
+          <input type="file" id="backup-file-input" accept=".json,application/json" style="display:none">
+        </div>
+        <div id="backup-msg" style="margin-top:10px"></div>
+      </div>
+
+      <div class="card">
+        <div class="ch">
+          <span class="ct">社員一覧</span>
+          <div class="search-bar" style="margin:0">
+            <input type="text" id="emp-search" placeholder="氏名・社員番号・部署で検索…" style="width:240px">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>社員番号</th>
+              <th>氏名</th>
+              <th>部署</th>
+              <th>携帯番号</th>
+              <th>端末</th>
+              <th>契約更新</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="emp-tbody"></tbody>
+        </table>
+        <div id="emp-count" class="hint mt-12"></div>
+      </div>
+    </div>
+
+    <!-- ③ 機種変更申請 -->
+    <div class="page" id="page-new-request">
+      <div class="ph">
+        <h2>📝 機種変更申請（新規作成）</h2>
+        <p>社員番号を入力して申請内容を登録します</p>
+      </div>
+      <div class="card" style="max-width:680px">
+        <div class="fg">
+          <label class="fl">社員番号<span class="req">*</span></label>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="req-emp-id" placeholder="例: E001" style="max-width:160px" oninput="onEmpIdInput()">
+            <button class="btn btn-ghost btn-sm" onclick="lookupEmployee()">🔍 検索</button>
+          </div>
+        </div>
+
+        <!-- 社員情報プレビュー -->
+        <div id="emp-preview" class="hidden">
+          <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;color:#0369a1;margin-bottom:8px">✅ 社員情報を確認</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px">
+              <div><span class="text-muted">氏名：</span><strong id="prev-name">-</strong></div>
+              <div><span class="text-muted">部署：</span><strong id="prev-dept">-</strong></div>
+              <div><span class="text-muted">電話番号：</span><strong id="prev-phone">-</strong></div>
+            </div>
+          </div>
+          <!-- 進行中申請の警告 -->
+          <div id="existing-req-warn" class="hidden alert alert-warn">
+            <span class="alert-icon">⚠️</span>
+            <div>
+              <strong>進行中の申請があります</strong>
+              <div id="existing-req-detail" style="font-size:12px;margin-top:4px"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 社員確認チェックボックス -->
+        <div class="fg" id="emp-confirm-wrap" style="display:none">
+          <label class="cb-wrap">
+            <input type="checkbox" id="emp-confirm-cb" onchange="updateSubmitBtn()">
+            <span>上記の社員情報が正しいことを確認しました</span>
+          </label>
+        </div>
+
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0">
+
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl">希望機種<span class="req">*</span></label>
+            <input type="text" id="req-model" placeholder="例: iPhone 16 256GB" list="model-list" oninput="updateSubmitBtn()" autocomplete="off">
+            <datalist id="model-list">
+              <option value="iPhone 16 128GB"></option>
+              <option value="iPhone 16 256GB"></option>
+              <option value="iPhone 16 Pro 256GB"></option>
+              <option value="iPhone 15 128GB"></option>
+              <option value="iPhone 15 256GB"></option>
+              <option value="Galaxy S24 256GB"></option>
+              <option value="Google Pixel 9 128GB"></option>
+              <option value="AQUOS wish4"></option>
+              <option value="Xperia 10 VI"></option>
+            </datalist>
+            <div class="hint">候補から選ぶと表記揺れを防げます（自由入力も可）</div>
+          </div>
+          <div class="fg">
+            <label class="fl">申請理由<span class="req">*</span></label>
+            <select id="req-reason" onchange="updateSubmitBtn()">
+              <option value="">-- 選択してください --</option>
+              <option value="契約更新">契約更新（2年満了）</option>
+              <option value="紛失・盗難">紛失・盗難</option>
+              <option value="故障・破損">故障・破損</option>
+              <option value="機能不足">機能不足・業務上必要</option>
+              <option value="その他">その他</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="fg">
+            <label class="fl">希望日</label>
+            <input type="date" id="req-desired-date">
+          </div>
+          <div class="fg">
+            <label class="fl">備考</label>
+            <input type="text" id="req-note" placeholder="任意">
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn btn-ghost" onclick="clearNewRequestForm()">クリア</button>
+          <button class="btn btn-primary" id="req-submit-btn" disabled onclick="submitRequest()">
+            📤 申請を送信する
+          </button>
+        </div>
+        <div id="req-submit-msg" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- ④ 申請一覧・管理 -->
+    <div class="page" id="page-requests">
+      <div class="ph">
+        <h2>📋 申請一覧・管理</h2>
+        <p>機種変更申請のステータスを管理します</p>
+      </div>
+      <div class="card">
+        <div class="ch" style="flex-wrap:wrap;gap:10px">
+          <span class="ct">申請フィルター</span>
+          <div class="filter-tabs" id="status-filter-tabs">
+            <div class="ftab active" data-filter="all">すべて</div>
+            <div class="ftab" data-filter="pending">申請中</div>
+            <div class="ftab" data-filter="ordered">発注済</div>
+            <div class="ftab" data-filter="done">完了</div>
+            <div class="ftab" data-filter="rejected">却下</div>
+          </div>
+          <input type="text" id="req-search" placeholder="申請番号・氏名・機種で検索…" style="width:220px">
+        </div>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>申請番号</th>
+              <th>社員</th>
+              <th>希望機種</th>
+              <th>理由</th>
+              <th>希望日</th>
+              <th>申請日</th>
+              <th>ステータス</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="req-tbody"></tbody>
+        </table>
+        <div id="req-count" class="hint mt-12"></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== モーダル: 社員追加・編集 ===== -->
+<div class="modal-bg" id="modal-emp">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="modal-emp-title">社員を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-emp')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">社員番号<span class="req">*</span></label>
+          <input type="text" id="emp-edit-id" placeholder="例: E001">
+        </div>
+        <div class="fg">
+          <label class="fl">氏名<span class="req">*</span></label>
+          <input type="text" id="emp-edit-name" placeholder="例: 田中 健二">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">部署<span class="req">*</span></label>
+          <input type="text" id="emp-edit-dept" placeholder="例: 営業1部">
+        </div>
+        <div class="fg">
+          <label class="fl">携帯番号<span class="req">*</span></label>
+          <input type="tel" id="emp-edit-phone" placeholder="例: 090-1234-5678">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">端末</label>
+          <input type="text" id="emp-edit-device" placeholder="例: iPhone 13 128GB">
+        </div>
+        <div class="fg">
+          <label class="fl">契約更新（年-月）</label>
+          <input type="text" id="emp-edit-contract" placeholder="例: 2025-08">
+        </div>
+      </div>
+      <div id="modal-emp-err" class="alert alert-err hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-emp')">キャンセル</button>
+      <button class="btn btn-primary" id="emp-save-btn" onclick="saveEmployee()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル: 承認・発注 ===== -->
+<div class="modal-bg" id="modal-order">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>📦 承認・発注する</h3>
+      <button class="modal-close" onclick="closeModal('modal-order')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ️</span>
+        <div>発注時に使用した携帯電話番号を入力してください。登録番号と照合します。</div>
+      </div>
+      <div id="order-emp-info" style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
+      <div class="fg">
+        <label class="fl">発注に使用した電話番号<span class="req">*</span></label>
+        <input type="tel" id="order-phone-input" placeholder="例: 090-1234-5678" oninput="checkOrderPhone()">
+        <div class="hint">ハイフンあり・なし問わず入力可</div>
+      </div>
+      <div id="order-phone-result" style="margin-top:8px;min-height:24px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-order')">キャンセル</button>
+      <button class="btn btn-success" id="order-confirm-btn" disabled onclick="confirmOrder()">✅ 発注を確定する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル: 申請書番号照合（完了処理） ===== -->
+<div class="modal-bg" id="modal-verify">
+  <div class="modal" style="width:520px">
+    <div class="modal-hdr">
+      <h3>🔍 申込書の番号を照合して完了</h3>
+      <button class="modal-close" onclick="closeModal('modal-verify')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div><strong>【最重要】</strong>申込書に記載された電話番号とマスタ登録番号を照合します。<br>取り違え防止のため、必ず確認してください。</div>
+      </div>
+      <div class="verify-block" id="verify-registered-block">
+        <div class="vb-label">マスタ登録番号（正解）</div>
+        <div class="vb-num" id="verify-registered-num">-</div>
+      </div>
+      <div class="fg">
+        <label class="fl">申込書に記載の番号<span class="req">*</span></label>
+        <input type="tel" id="verify-input" placeholder="申込書の番号を入力" oninput="onVerifyInput()" autocomplete="off">
+        <div class="hint">ハイフン・スペース・全角は自動で除去して照合します</div>
+      </div>
+      <div id="verify-result" style="margin-top:12px;min-height:28px"></div>
+      <div id="verify-mismatch-warn" class="hidden">
+        <div class="alert alert-err" style="margin-top:8px">
+          <span class="alert-icon">🚨</span>
+          <div><strong>3回連続で不一致です！</strong><br>申込書を取り違えていませんか？上長に確認してください。</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-verify')">キャンセル</button>
+      <button class="btn btn-success" id="verify-complete-btn" disabled onclick="completeWithVerify()">✅ 照合完了・申請を完了する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル: 申請詳細 ===== -->
+<div class="modal-bg" id="modal-detail">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <h3 id="detail-title">申請詳細</h3>
+      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-detail')">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== モーダル: 却下 ===== -->
+<div class="modal-bg" id="modal-reject">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3>❌ 申請を却下する</h3>
+      <button class="modal-close" onclick="closeModal('modal-reject')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div>この操作は取り消せません。却下理由を入力してください。</div>
+      </div>
+      <div class="fg">
+        <label class="fl">却下理由<span class="req">*</span></label>
+        <textarea id="reject-reason" placeholder="例: 契約期間が残っているため、○年○月以降に再申請してください"></textarea>
+      </div>
+      <div id="reject-err" class="alert alert-err hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reject')">キャンセル</button>
+      <button class="btn btn-danger" onclick="confirmReject()">却下する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ===== 定数 =====
+const PW = 'fuji9115';
+const LS_EMP = 'mobile_kanri_employees';
+const LS_REQ = 'mobile_kanri_requests';
+const LS_BACKUP_TS = 'mobile_kanri_last_backup';
+// ★本番運用を始めたら false にすると、初回のサンプルデータ登録を行いません
+const ENABLE_SAMPLE_DATA = true;
+// サンプルは「明らかに架空」と分かる値にしています（実在の社員情報は入れません）
+const SAMPLE_EMPLOYEES = [
+  {employee_id:'SAMPLE1',name:'サンプル 太郎',dept:'サンプル課',phone_number:'090-0000-0001',device:'iPhone 13 128GB',contract_date:'2025-08'},
+  {employee_id:'SAMPLE2',name:'サンプル 花子',dept:'サンプル課',phone_number:'090-0000-0002',device:'Galaxy S23 256GB',contract_date:'2026-07'},
+  {employee_id:'SAMPLE3',name:'サンプル 次郎',dept:'サンプル課',phone_number:'090-0000-0003',device:'iPhone 14 256GB',contract_date:'2026-08'},
+  {employee_id:'SAMPLE4',name:'サンプル 桜',dept:'サンプル課',phone_number:'090-0000-0004',device:'Pixel 8 128GB',contract_date:'2026-06'},
+  {employee_id:'SAMPLE5',name:'サンプル 健',dept:'サンプル課',phone_number:'090-0000-0005',device:'iPhone 15 Pro 256GB',contract_date:'2026-09'},
+];
+
+// ===== XSSエスケープ =====
+function esc(s){
+  const d=document.createElement('div');
+  d.textContent=String(s||'');
+  return d.innerHTML;
+}
+
+// ===== 電話番号正規化（数字以外をすべて除去） =====
+function normalizePhone(s){
+  if(!s) return '';
+  // 全角数字→半角
+  s=s.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  // 数字以外をすべて除去（半角/全角ハイフン・スペース・カッコ・引用符など全形式に対応）
+  s=s.replace(/\D/g,'');
+  return s;
+}
+
+// ===== UUID生成 =====
+function genId(){
+  return Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+}
+
+// ===== 申請番号生成 REQ-YYYY-NNNN =====
+function genRequestNo(){
+  const reqs=loadReqs();
+  const year=new Date().getFullYear();
+  const thisYearReqs=reqs.filter(r=>r.request_no&&r.request_no.startsWith('REQ-'+year+'-'));
+  let max=0;
+  thisYearReqs.forEach(r=>{
+    const n=parseInt(r.request_no.split('-')[2]||'0',10);
+    if(n>max) max=n;
+  });
+  return 'REQ-'+year+'-'+String(max+1).padStart(4,'0');
+}
+
+// ===== localStorage操作 =====
+function loadEmps(){
+  try{return JSON.parse(localStorage.getItem(LS_EMP)||'[]');}catch{return[];}
+}
+function saveEmps(data){
+  localStorage.setItem(LS_EMP,JSON.stringify(data));
+}
+function loadReqs(){
+  try{return JSON.parse(localStorage.getItem(LS_REQ)||'[]');}catch{return[];}
+}
+function saveReqs(data){
+  localStorage.setItem(LS_REQ,JSON.stringify(data));
+}
+
+// ===== サンプルデータ初期化 =====
+function initSampleData(){
+  if(!ENABLE_SAMPLE_DATA) return;
+  const emps=loadEmps();
+  if(emps.length===0){
+    const now=new Date().toISOString();
+    const initialEmps=SAMPLE_EMPLOYEES.map(e=>({
+      id:genId(),
+      employee_id:e.employee_id,
+      name:e.name,
+      dept:e.dept,
+      phone_number:e.phone_number,
+      device:e.device,
+      contract_date:e.contract_date,
+      updated_at:now
+    }));
+    saveEmps(initialEmps);
+  }
+}
+
+// ===== パスワードゲート =====
+function checkPassword(){
+  const val=document.getElementById('pw-input').value;
+  const errEl=document.getElementById('pw-err');
+  if(val===PW){
+    sessionStorage.setItem('mk_auth','1');
+    document.getElementById('pw-gate').classList.add('hidden');
+    document.getElementById('app').style.display='flex';
+    initApp();
+  } else {
+    errEl.textContent='パスワードが違います';
+    document.getElementById('pw-input').value='';
+    document.getElementById('pw-input').focus();
+    setTimeout(()=>{errEl.textContent='';},2000);
+  }
+}
+
+document.getElementById('pw-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter') checkPassword();
+});
+document.getElementById('pw-btn').addEventListener('click',checkPassword);
+
+document.getElementById('logout-btn').addEventListener('click',()=>{
+  if(confirm('ログアウトしますか？')){
+    sessionStorage.removeItem('mk_auth');
+    location.reload();
+  }
+});
+
+// セッション復元
+if(sessionStorage.getItem('mk_auth')==='1'){
+  document.getElementById('pw-gate').classList.add('hidden');
+  document.getElementById('app').style.display='flex';
+  initApp();
+}
+
+// ===== ナビゲーション =====
+let currentPage='dashboard';
+function navigate(page){
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const navEl=document.querySelector('.nav[data-page="'+page+'"]');
+  if(navEl) navEl.classList.add('active');
+  const pageEl=document.getElementById('page-'+page.replace(/-/g,'-'));
+  if(pageEl) pageEl.classList.add('active');
+  currentPage=page;
+  if(page==='dashboard') renderDashboard();
+  if(page==='employees') renderEmployees();
+  if(page==='new-request') resetNewRequestPage();
+  if(page==='requests') renderRequests();
+}
+
+document.querySelectorAll('.nav').forEach(n=>{
+  n.addEventListener('click',()=>navigate(n.dataset.page));
+});
+
+// ===== アプリ初期化 =====
+function initApp(){
+  initSampleData();
+  setupCsvDrop();
+  setupBackup();
+  setupEmpSearch();
+  setupRequestFilter();
+  renderDashboard();
+}
+
+// ===== ① ダッシュボード =====
+function renderDashboard(){
+  const emps=loadEmps();
+  const reqs=loadReqs();
+  const year=new Date().getFullYear();
+  document.getElementById('stat-emp').textContent=emps.length;
+  document.getElementById('stat-pending').textContent=reqs.filter(r=>r.status==='pending').length;
+  document.getElementById('stat-ordered').textContent=reqs.filter(r=>r.status==='ordered').length;
+  document.getElementById('stat-done').textContent=reqs.filter(r=>r.status==='done'&&r.created_at&&r.created_at.startsWith(String(year))).length;
+
+  // ===== 契約更新アラート（3ヶ月以内＋超過を上部に表示） =====
+  const alertEl=document.getElementById('dash-contract-alert');
+  if(alertEl){
+    alertEl.innerHTML='';
+    const now=new Date();
+    const soon=emps.map(e=>{
+      if(!e.contract_date) return null;
+      const parts=e.contract_date.split('-').map(Number);
+      const y=parts[0], m=parts[1];
+      if(!y||!m) return null;
+      const months=(y-now.getFullYear())*12+(m-(now.getMonth()+1));
+      return {e,months};
+    }).filter(x=>x&&x.months<=3).sort((a,b)=>a.months-b.months);
+    if(soon.length){
+      const card=document.createElement('div');
+      card.className='card';
+      card.style.cssText='border-left:4px solid #f59e0b;margin-bottom:16px';
+      const h=document.createElement('div');
+      h.style.cssText='font-weight:700;color:#b45309;margin-bottom:10px;font-size:14px';
+      h.textContent='⏰ 契約更新が近い社員（'+soon.length+'名）';
+      card.appendChild(h);
+      soon.forEach(({e,months})=>{
+        const row=document.createElement('div');
+        row.style.cssText='display:flex;gap:12px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid #f1f5f9';
+        const label = months<0?'更新時期 超過' : (months===0?'今月が期限' : 'あと'+months+'ヶ月');
+        const c1=document.createElement('span'); c1.style.cssText='min-width:130px;font-weight:600'; c1.textContent=e.name;
+        const c2=document.createElement('span'); c2.style.cssText='min-width:90px;color:#64748b'; c2.textContent=e.dept||'';
+        const c3=document.createElement('span'); c3.style.cssText='min-width:90px;font-family:monospace'; c3.textContent=e.contract_date;
+        const c4=document.createElement('span'); c4.style.cssText='font-weight:700;color:'+(months<=0?'#ef4444':'#f59e0b'); c4.textContent=label;
+        row.appendChild(c1); row.appendChild(c2); row.appendChild(c3); row.appendChild(c4);
+        card.appendChild(row);
+      });
+      alertEl.appendChild(card);
+    }
+  }
+
+  const tbody=document.getElementById('dash-recent-tbody');
+  const recent=[...reqs].sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,5);
+  if(recent.length===0){
+    tbody.innerHTML='<tr><td colspan="6" class="tbl-empty">申請がありません</td></tr>';
+    return;
+  }
+  tbody.innerHTML='';
+  recent.forEach(r=>{
+    const emp=loadEmps().find(e=>e.employee_id===r.employee_id);
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">'+esc(r.request_no)+'</code></td>'+
+      '<td>'+esc(r.employee_id)+'</td>'+
+      '<td>'+esc(emp?emp.name:r.employee_id)+'</td>'+
+      '<td>'+esc(r.model)+'</td>'+
+      '<td>'+esc((r.created_at||'').slice(0,10))+'</td>'+
+      '<td>'+statusBadge(r.status)+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function statusBadge(s){
+  const map={pending:'申請中 badge-pending',ordered:'発注済 badge-ordered',done:'完了 badge-done',rejected:'却下 badge-rejected'};
+  const v=map[s]||s;
+  const [label,cls]=v.split(' ');
+  return '<span class="badge '+cls+'">'+esc(label)+'</span>';
+}
+
+// ===== ② 社員マスタ =====
+let empSearchQ='';
+function setupEmpSearch(){
+  document.getElementById('emp-search').addEventListener('input',e=>{
+    empSearchQ=e.target.value;
+    renderEmployees();
+  });
+}
+
+function renderEmployees(){
+  const all=loadEmps();
+  const q=empSearchQ.toLowerCase().trim();
+  const filtered=q?all.filter(e=>
+    e.name.toLowerCase().includes(q)||
+    e.employee_id.toLowerCase().includes(q)||
+    (e.dept||'').toLowerCase().includes(q)
+  ):all;
+
+  const tbody=document.getElementById('emp-tbody');
+  tbody.innerHTML='';
+  if(filtered.length===0){
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=7;
+    td.className='tbl-empty';
+    td.textContent='社員が見つかりません';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    filtered.forEach(e=>{
+      const tr=document.createElement('tr');
+      // 契約更新の色
+      const cd=e.contract_date||'';
+      let cdSpan='<span>'+esc(cd)+'</span>';
+      if(cd){
+        const [y,m]=cd.split('-').map(Number);
+        const now=new Date();
+        const months=(y-now.getFullYear())*12+(m-(now.getMonth()+1));
+        if(months<=2) cdSpan='<span style="color:#ef4444;font-weight:700">'+esc(cd)+' ⚠️</span>';
+        else if(months<=6) cdSpan='<span style="color:#f59e0b;font-weight:700">'+esc(cd)+'</span>';
+      }
+      tr.innerHTML=
+        '<td><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">'+esc(e.employee_id)+'</code></td>'+
+        '<td style="font-weight:600">'+esc(e.name)+'</td>'+
+        '<td>'+esc(e.dept)+'</td>'+
+        '<td style="font-family:monospace">'+esc(e.phone_number)+'</td>'+
+        '<td>'+esc(e.device)+'</td>'+
+        '<td>'+cdSpan+'</td>'+
+        '<td><button class="btn btn-ghost btn-xs" onclick="openEditEmpModal(\''+esc(e.id)+'\')">編集</button> '+
+        '<button class="btn btn-danger btn-xs" onclick="deleteEmployee(\''+esc(e.id)+'\')">削除</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('emp-count').textContent=filtered.length+'件表示（全'+all.length+'件）';
+  updateBackupStatus();
+}
+
+function openAddEmpModal(){
+  document.getElementById('modal-emp-title').textContent='社員を追加';
+  document.getElementById('emp-save-btn').dataset.mode='add';
+  document.getElementById('emp-save-btn').dataset.editId='';
+  document.getElementById('emp-edit-id').value='';
+  document.getElementById('emp-edit-name').value='';
+  document.getElementById('emp-edit-dept').value='';
+  document.getElementById('emp-edit-phone').value='';
+  document.getElementById('emp-edit-device').value='';
+  document.getElementById('emp-edit-contract').value='';
+  document.getElementById('modal-emp-err').classList.add('hidden');
+  document.getElementById('emp-edit-id').disabled=false;
+  openModal('modal-emp');
+}
+
+function openEditEmpModal(id){
+  const emps=loadEmps();
+  const emp=emps.find(e=>e.id===id);
+  if(!emp) return;
+  document.getElementById('modal-emp-title').textContent='社員情報を編集';
+  document.getElementById('emp-save-btn').dataset.mode='edit';
+  document.getElementById('emp-save-btn').dataset.editId=id;
+  document.getElementById('emp-edit-id').value=emp.employee_id;
+  document.getElementById('emp-edit-name').value=emp.name;
+  document.getElementById('emp-edit-dept').value=emp.dept;
+  document.getElementById('emp-edit-phone').value=emp.phone_number;
+  document.getElementById('emp-edit-device').value=emp.device||'';
+  document.getElementById('emp-edit-contract').value=emp.contract_date||'';
+  document.getElementById('modal-emp-err').classList.add('hidden');
+  document.getElementById('emp-edit-id').disabled=true;
+  openModal('modal-emp');
+}
+
+function saveEmployee(){
+  const mode=document.getElementById('emp-save-btn').dataset.mode;
+  const editId=document.getElementById('emp-save-btn').dataset.editId;
+  const eid=document.getElementById('emp-edit-id').value.trim();
+  const name=document.getElementById('emp-edit-name').value.trim();
+  const dept=document.getElementById('emp-edit-dept').value.trim();
+  const phone=document.getElementById('emp-edit-phone').value.trim();
+  const device=document.getElementById('emp-edit-device').value.trim();
+  const contract=document.getElementById('emp-edit-contract').value.trim();
+  const errEl=document.getElementById('modal-emp-err');
+
+  if(!eid||!name||!dept||!phone){
+    errEl.textContent='社員番号・氏名・部署・携帯番号は必須です';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const emps=loadEmps();
+  if(mode==='add'){
+    if(emps.find(e=>e.employee_id===eid)){
+      errEl.textContent='社員番号 '+eid+' はすでに登録されています';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    emps.push({id:genId(),employee_id:eid,name,dept,phone_number:phone,device,contract_date:contract,updated_at:new Date().toISOString()});
+  } else {
+    const idx=emps.findIndex(e=>e.id===editId);
+    if(idx<0) return;
+    emps[idx]={...emps[idx],name,dept,phone_number:phone,device,contract_date:contract,updated_at:new Date().toISOString()};
+  }
+  saveEmps(emps);
+  closeModal('modal-emp');
+  renderEmployees();
+}
+
+let _lastDeletedEmp=null;
+function deleteEmployee(id){
+  const emps=loadEmps();
+  const emp=emps.find(e=>e.id===id);
+  if(!emp) return;
+  if(!confirm('社員「'+emp.name+'」を削除しますか？\n関連する申請データは残ります。')){return;}
+  _lastDeletedEmp=emp;
+  saveEmps(emps.filter(e=>e.id!==id));
+  renderEmployees();
+  showUndo('社員「'+emp.name+'」を削除しました。',()=>{
+    if(!_lastDeletedEmp) return;
+    const cur=loadEmps();
+    if(!cur.find(e=>e.id===_lastDeletedEmp.id)){ cur.push(_lastDeletedEmp); saveEmps(cur); }
+    _lastDeletedEmp=null;
+    renderEmployees();
+  });
+}
+
+// 元に戻せる削除トースト（8秒間表示）
+function showUndo(text,undoFn){
+  let bar=document.getElementById('undo-bar');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='undo-bar';
+    bar.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,.3);display:flex;align-items:center;gap:14px;z-index:10000;font-size:13px';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML='';
+  const span=document.createElement('span');
+  span.textContent=text;
+  const btn=document.createElement('button');
+  btn.textContent='元に戻す';
+  btn.style.cssText='background:#3b82f6;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-weight:700';
+  btn.onclick=()=>{ undoFn(); if(bar.parentNode) bar.remove(); };
+  bar.appendChild(span);
+  bar.appendChild(btn);
+  clearTimeout(window._undoTimer);
+  window._undoTimer=setTimeout(()=>{ if(bar.parentNode) bar.remove(); },8000);
+}
+
+// ===== CSVインポート =====
+function setupCsvDrop(){
+  const dropArea=document.getElementById('csv-drop-area');
+  const fileInput=document.getElementById('csv-file-input');
+  dropArea.addEventListener('dragover',e=>{e.preventDefault();dropArea.style.borderColor='#3b82f6';});
+  dropArea.addEventListener('dragleave',()=>{dropArea.style.borderColor='';});
+  dropArea.addEventListener('drop',e=>{
+    e.preventDefault();
+    dropArea.style.borderColor='';
+    const file=e.dataTransfer.files[0];
+    if(file) processCSVFile(file);
+  });
+  fileInput.addEventListener('change',e=>{
+    if(e.target.files[0]) processCSVFile(e.target.files[0]);
+    fileInput.value='';
+  });
+}
+
+function processCSVFile(file){
+  const msgEl=document.getElementById('csv-import-msg');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let text=e.target.result;
+    // BOM除去
+    if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){
+      showMsg(msgEl,'CSVが空か、ヘッダー行のみです','err');
+      return;
+    }
+    const header=lines[0].split(',').map(h=>h.trim());
+    const idxMap={};
+    ['社員番号','氏名','部署','携帯番号','端末','契約更新'].forEach((col,i)=>{
+      const idx=header.indexOf(col);
+      if(idx>=0) idxMap[col]=idx;
+    });
+    const required=['社員番号','氏名','部署','携帯番号'];
+    const missing=required.filter(r=>!(r in idxMap));
+    if(missing.length>0){
+      showMsg(msgEl,'必須列が見つかりません: '+missing.join(', '),'err');
+      return;
+    }
+    const emps=loadEmps();
+    let added=0,updated=0,errors=[];
+    for(let i=1;i<lines.length;i++){
+      const cols=lines[i].split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      const employee_id=cols[idxMap['社員番号']]||'';
+      const name=cols[idxMap['氏名']]||'';
+      const dept=cols[idxMap['部署']]||'';
+      const phone_number=cols[idxMap['携帯番号']]||'';
+      const device=idxMap['端末']!=null?(cols[idxMap['端末']]||''):'';
+      const contract_date=idxMap['契約更新']!=null?(cols[idxMap['契約更新']]||''):'';
+      if(!employee_id||!name||!dept||!phone_number){
+        errors.push(i+1+'行目: 必須項目が空');
+        continue;
+      }
+      const idx=emps.findIndex(e=>e.employee_id===employee_id);
+      if(idx>=0){
+        emps[idx]={...emps[idx],name,dept,phone_number,device,contract_date,updated_at:new Date().toISOString()};
+        updated++;
+      } else {
+        emps.push({id:genId(),employee_id,name,dept,phone_number,device,contract_date,updated_at:new Date().toISOString()});
+        added++;
+      }
+    }
+    saveEmps(emps);
+    renderEmployees();
+    let msg=added+'件追加、'+updated+'件更新しました。';
+    if(errors.length>0) msg+=' エラー: '+errors.slice(0,3).join(' / ')+(errors.length>3?'...(+'+(errors.length-3)+'件)':'');
+    showMsg(msgEl,msg,errors.length>0?'warn':'success');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+// ===== CSVエクスポート =====
+// Excelの数式インジェクション無害化：= + - @ などで始まる値の先頭に ' を付与
+function csvCell(v){
+  let s=String(v==null?'':v);
+  if(/^[=+\-@\t\r]/.test(s)) s="'"+s;
+  return '"'+s.replace(/"/g,'""')+'"';
+}
+function exportCSV(){
+  const emps=loadEmps();
+  const BOM='﻿';
+  const header='社員番号,氏名,部署,携帯番号,端末,契約更新\n';
+  const rows=emps.map(e=>[e.employee_id,e.name,e.dept,e.phone_number,e.device||'',e.contract_date||''].map(csvCell).join(',')).join('\n');
+  const blob=new Blob([BOM+header+rows],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='mobile_kanri_employees_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+
+// ===== JSONバックアップ（全データ）/ 復元 =====
+function exportBackup(){
+  const data={
+    _type:'mobile_kanri_backup',
+    _version:1,
+    exported_at:new Date().toISOString(),
+    employees:loadEmps(),
+    requests:loadReqs()
+  };
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='mobile_kanri_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  localStorage.setItem(LS_BACKUP_TS,new Date().toISOString());
+  updateBackupStatus();
+  showMsg(document.getElementById('backup-msg'),'バックアップを書き出しました。社内共有フォルダ等の安全な場所に保管してください。','success');
+}
+
+function importBackup(file){
+  const msgEl=document.getElementById('backup-msg');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let data;
+    try{ data=JSON.parse(e.target.result); }
+    catch{ showMsg(msgEl,'ファイルを読み取れませんでした（JSON形式ではありません）','err'); return; }
+    if(!data||data._type!=='mobile_kanri_backup'||!Array.isArray(data.employees)||!Array.isArray(data.requests)){
+      showMsg(msgEl,'このアプリのバックアップファイルではありません','err'); return;
+    }
+    const ver=(data.exported_at||'').slice(0,10)||'不明';
+    if(!confirm('現在のデータを、バックアップ（'+ver+'版・社員'+data.employees.length+'件/申請'+data.requests.length+'件）で上書きします。\n\n※現在このPCにあるデータは消えます。よろしいですか？')){ return; }
+    saveEmps(data.employees);
+    saveReqs(data.requests);
+    renderEmployees(); renderRequests(); renderDashboard();
+    showMsg(msgEl,'バックアップから復元しました（社員'+data.employees.length+'件 / 申請'+data.requests.length+'件）','success');
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function setupBackup(){
+  const inp=document.getElementById('backup-file-input');
+  if(inp) inp.addEventListener('change',e=>{ if(e.target.files[0]) importBackup(e.target.files[0]); inp.value=''; });
+  updateBackupStatus();
+}
+
+function updateBackupStatus(){
+  const el=document.getElementById('backup-status');
+  if(!el) return;
+  const ts=localStorage.getItem(LS_BACKUP_TS);
+  if(!ts){ el.textContent='⚠️ まだバックアップを取っていません'; el.style.color='#b45309'; return; }
+  const days=Math.floor((Date.now()-new Date(ts).getTime())/86400000);
+  el.textContent='最終バックアップ: '+(days<=0?'今日':days+'日前')+'（'+ts.slice(0,10)+'）';
+  el.style.color=days>=7?'#b45309':'#64748b';
+}
+
+// ===== ③ 機種変更申請 =====
+let _lookupEmp=null;
+
+function resetNewRequestPage(){
+  _lookupEmp=null;
+  document.getElementById('req-emp-id').value='';
+  document.getElementById('emp-preview').classList.add('hidden');
+  document.getElementById('emp-confirm-wrap').style.display='none';
+  document.getElementById('emp-confirm-cb').checked=false;
+  document.getElementById('req-model').value='';
+  document.getElementById('req-reason').value='';
+  document.getElementById('req-desired-date').value='';
+  document.getElementById('req-note').value='';
+  document.getElementById('req-submit-btn').disabled=true;
+  document.getElementById('req-submit-msg').innerHTML='';
+  document.getElementById('existing-req-warn').classList.add('hidden');
+}
+
+function onEmpIdInput(){
+  _lookupEmp=null;
+  document.getElementById('emp-preview').classList.add('hidden');
+  document.getElementById('emp-confirm-wrap').style.display='none';
+  document.getElementById('emp-confirm-cb').checked=false;
+  updateSubmitBtn();
+}
+
+function lookupEmployee(){
+  const eid=document.getElementById('req-emp-id').value.trim();
+  if(!eid){
+    alert('社員番号を入力してください');
+    return;
+  }
+  const emps=loadEmps();
+  const emp=emps.find(e=>e.employee_id===eid);
+  if(!emp){
+    const prev=document.getElementById('emp-preview');
+    prev.classList.remove('hidden');
+    prev.innerHTML='<div class="alert alert-err"><span class="alert-icon">❌</span><div>社員番号「'+esc(eid)+'」は登録されていません。社員マスタを確認してください。</div></div>';
+    document.getElementById('emp-confirm-wrap').style.display='none';
+    _lookupEmp=null;
+    updateSubmitBtn();
+    return;
+  }
+  _lookupEmp=emp;
+  document.getElementById('prev-name').textContent=emp.name;
+  document.getElementById('prev-dept').textContent=emp.dept;
+  document.getElementById('prev-phone').textContent=emp.phone_number;
+  document.getElementById('emp-preview').classList.remove('hidden');
+  // innerHTML was used above with error case; for normal case use DOM
+  // Rebuild preview safely
+  const prevDiv=document.getElementById('emp-preview');
+  prevDiv.innerHTML='';
+  const infoBox=document.createElement('div');
+  infoBox.style.cssText='background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:16px';
+  const lbl=document.createElement('div');
+  lbl.style.cssText='font-size:11px;font-weight:700;color:#0369a1;margin-bottom:8px';
+  lbl.textContent='✅ 社員情報を確認';
+  infoBox.appendChild(lbl);
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:13px';
+  [['氏名',emp.name],['部署',emp.dept],['電話番号',emp.phone_number]].forEach(([k,v])=>{
+    const cell=document.createElement('div');
+    const span=document.createElement('span');
+    span.className='text-muted';
+    span.textContent=k+'：';
+    const strong=document.createElement('strong');
+    strong.textContent=v;
+    cell.appendChild(span);
+    cell.appendChild(strong);
+    grid.appendChild(cell);
+  });
+  infoBox.appendChild(grid);
+  prevDiv.appendChild(infoBox);
+
+  // 進行中申請チェック
+  const reqs=loadReqs();
+  const existing=reqs.filter(r=>r.employee_id===emp.employee_id&&(r.status==='pending'||r.status==='ordered'));
+  if(existing.length>0){
+    const warnDiv=document.createElement('div');
+    warnDiv.className='alert alert-warn';
+    const icon=document.createElement('span');
+    icon.className='alert-icon';
+    icon.textContent='⚠️';
+    const content=document.createElement('div');
+    const strong=document.createElement('strong');
+    strong.textContent='進行中の申請があります';
+    content.appendChild(strong);
+    const detail=document.createElement('div');
+    detail.style.cssText='font-size:12px;margin-top:4px';
+    existing.forEach(r=>{
+      const p=document.createElement('div');
+      p.textContent=r.request_no+' ／ '+r.model+' ／ ステータス: '+statusLabel(r.status);
+      detail.appendChild(p);
+    });
+    content.appendChild(detail);
+    warnDiv.appendChild(icon);
+    warnDiv.appendChild(content);
+    prevDiv.appendChild(warnDiv);
+  }
+
+  document.getElementById('emp-confirm-wrap').style.display='block';
+  document.getElementById('emp-confirm-cb').checked=false;
+  updateSubmitBtn();
+}
+
+function statusLabel(s){
+  return {pending:'申請中',ordered:'発注済',done:'完了',rejected:'却下'}[s]||s;
+}
+
+function updateSubmitBtn(){
+  const cbChecked=document.getElementById('emp-confirm-cb').checked;
+  const model=document.getElementById('req-model').value.trim();
+  const reason=document.getElementById('req-reason').value;
+  const empOk=_lookupEmp!=null;
+  document.getElementById('req-submit-btn').disabled=!(cbChecked&&model&&reason&&empOk);
+}
+
+function clearNewRequestForm(){
+  resetNewRequestPage();
+}
+
+function submitRequest(){
+  if(!_lookupEmp) return;
+  const model=document.getElementById('req-model').value.trim();
+  const reason=document.getElementById('req-reason').value;
+  const desired_date=document.getElementById('req-desired-date').value;
+  const note=document.getElementById('req-note').value.trim();
+
+  const req={
+    id:genId(),
+    request_no:genRequestNo(),
+    employee_id:_lookupEmp.employee_id,
+    phone_number:_lookupEmp.phone_number,
+    model,
+    reason,
+    note,
+    desired_date,
+    status:'pending',
+    submitted_by:'総務課',
+    created_at:new Date().toISOString(),
+    approved_by:null,approved_at:null,
+    order_entered_number:null,order_verified:false,
+    entered_number:null,verified:false,verified_at:null,
+    mismatch_count:0,
+    rejection_reason:null
+  };
+  const reqs=loadReqs();
+  reqs.push(req);
+  saveReqs(reqs);
+
+  const msgEl=document.getElementById('req-submit-msg');
+  const div=document.createElement('div');
+  div.className='alert alert-success';
+  const icon=document.createElement('span');
+  icon.className='alert-icon';
+  icon.textContent='✅';
+  const txt=document.createElement('div');
+  const strong=document.createElement('strong');
+  strong.textContent='申請を受け付けました。';
+  txt.appendChild(strong);
+  const sub=document.createElement('div');
+  sub.textContent='申請番号: '+req.request_no;
+  sub.style.fontSize='12px';
+  txt.appendChild(sub);
+  div.appendChild(icon);
+  div.appendChild(txt);
+  msgEl.innerHTML='';
+  msgEl.appendChild(div);
+
+  setTimeout(()=>{
+    resetNewRequestPage();
+    navigate('requests');
+  },1500);
+}
+
+// ===== ④ 申請一覧 =====
+let reqFilter='all';
+let reqSearchQ='';
+
+function setupRequestFilter(){
+  document.querySelectorAll('.ftab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      reqFilter=tab.dataset.filter;
+      renderRequests();
+    });
+  });
+  document.getElementById('req-search').addEventListener('input',e=>{
+    reqSearchQ=e.target.value;
+    renderRequests();
+  });
+}
+
+function renderRequests(){
+  const allReqs=loadReqs();
+  const allEmps=loadEmps();
+  const q=reqSearchQ.toLowerCase().trim();
+  let filtered=allReqs;
+  if(reqFilter!=='all') filtered=filtered.filter(r=>r.status===reqFilter);
+  if(q) filtered=filtered.filter(r=>{
+    const emp=allEmps.find(e=>e.employee_id===r.employee_id);
+    return r.request_no.toLowerCase().includes(q)||
+      r.model.toLowerCase().includes(q)||
+      r.employee_id.toLowerCase().includes(q)||
+      (emp&&emp.name.toLowerCase().includes(q));
+  });
+  filtered=[...filtered].sort((a,b)=>b.created_at.localeCompare(a.created_at));
+
+  const tbody=document.getElementById('req-tbody');
+  tbody.innerHTML='';
+  if(filtered.length===0){
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=8;
+    td.className='tbl-empty';
+    td.textContent='申請が見つかりません';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    filtered.forEach(r=>{
+      const emp=allEmps.find(e=>e.employee_id===r.employee_id);
+      const tr=document.createElement('tr');
+      const empNameText=(emp?emp.name:r.employee_id);
+
+      // 操作ボタン
+      let actions='';
+      if(r.status==='pending'){
+        actions='<button class="btn btn-success btn-xs" onclick="openOrderModal(\''+r.id+'\')">承認・発注</button> '+
+                '<button class="btn btn-danger btn-xs" onclick="openRejectModal(\''+r.id+'\')">却下</button>';
+      } else if(r.status==='ordered'){
+        actions='<button class="btn btn-primary btn-xs" onclick="openVerifyModal(\''+r.id+'\')">照合・完了</button>';
+      } else if(r.status==='done'){
+        actions='<button class="btn btn-ghost btn-xs" onclick="openDetailModal(\''+r.id+'\')">詳細</button>';
+      } else if(r.status==='rejected'){
+        actions='<button class="btn btn-ghost btn-xs" onclick="openDetailModal(\''+r.id+'\')">詳細</button>';
+      }
+
+      tr.innerHTML=
+        '<td><code style="font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:4px">'+esc(r.request_no)+'</code></td>'+
+        '<td><span style="font-weight:600">'+esc(empNameText)+'</span><br><span class="text-xs text-muted">'+esc(r.employee_id)+'</span></td>'+
+        '<td>'+esc(r.model)+'</td>'+
+        '<td>'+esc(r.reason)+'</td>'+
+        '<td>'+esc(r.desired_date||'-')+'</td>'+
+        '<td>'+esc((r.created_at||'').slice(0,10))+'</td>'+
+        '<td>'+statusBadge(r.status)+'</td>'+
+        '<td style="white-space:nowrap">'+actions+'</td>';
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('req-count').textContent=filtered.length+'件表示（全'+allReqs.length+'件）';
+}
+
+// ===== 承認・発注モーダル =====
+let _orderReqId=null;
+function openOrderModal(reqId){
+  const reqs=loadReqs();
+  const r=reqs.find(x=>x.id===reqId);
+  // ★ステータス検証：申請中のみ発注モーダルを開ける
+  if(!r||r.status!=='pending'){ alert('この申請は発注できる状態ではありません。'); return; }
+  _orderReqId=reqId;
+  const emps=loadEmps();
+  const emp=emps.find(e=>e.employee_id===r.employee_id);
+
+  const infoEl=document.getElementById('order-emp-info');
+  infoEl.innerHTML='';
+  const rows=[
+    ['申請番号',r.request_no],
+    ['社員',emp?(emp.name+' ('+emp.employee_id+')'):(r.employee_id)],
+    ['登録電話番号',r.phone_number],
+    ['希望機種',r.model],
+    ['申請理由',r.reason],
+  ];
+  rows.forEach(([k,v])=>{
+    const div=document.createElement('div');
+    div.className='detail-row';
+    const key=document.createElement('span');
+    key.className='detail-key';
+    key.textContent=k;
+    const val=document.createElement('span');
+    val.className='detail-val';
+    val.textContent=v||'-';
+    div.appendChild(key);
+    div.appendChild(val);
+    infoEl.appendChild(div);
+  });
+
+  document.getElementById('order-phone-input').value='';
+  document.getElementById('order-phone-result').innerHTML='';
+  document.getElementById('order-confirm-btn').disabled=true;
+  openModal('modal-order');
+}
+
+function checkOrderPhone(){
+  if(!_orderReqId) return;
+  const reqs=loadReqs();
+  const r=reqs.find(x=>x.id===_orderReqId);
+  const inputVal=document.getElementById('order-phone-input').value;
+  const normalized=normalizePhone(inputVal);
+  const registeredNorm=normalizePhone(r.phone_number);
+  const resultEl=document.getElementById('order-phone-result');
+  const btn=document.getElementById('order-confirm-btn');
+
+  if(!inputVal.trim()||normalized.length<10){
+    resultEl.innerHTML='';
+    btn.disabled=true;
+    return;
+  }
+  if(normalized===registeredNorm){
+    resultEl.innerHTML='<div class="alert alert-success" style="margin:0"><span class="alert-icon">✅</span><div>番号が一致しました（'+esc(r.phone_number)+'）</div></div>';
+    btn.disabled=false;
+  } else {
+    resultEl.innerHTML='<div class="alert alert-err" style="margin:0"><span class="alert-icon">❌</span><div>登録番号と一致しません。登録番号: <strong>'+esc(r.phone_number)+'</strong></div></div>';
+    btn.disabled=true;
+  }
+}
+
+function confirmOrder(){
+  if(!_orderReqId) return;
+  const reqs=loadReqs();
+  const idx=reqs.findIndex(x=>x.id===_orderReqId);
+  if(idx<0) return;
+  // ★ステータス検証：申請中以外は発注できない（不正な状態遷移を防止）
+  if(reqs[idx].status!=='pending'){
+    alert('この申請は発注できる状態ではありません（現在: '+statusLabel(reqs[idx].status)+'）。');
+    closeModal('modal-order'); renderRequests(); renderDashboard(); return;
+  }
+  const inputPhone=document.getElementById('order-phone-input').value.trim();
+  // ★番号の再照合（UIのボタン状態に頼らず、ここでも必ず確認）
+  if(normalizePhone(inputPhone)!==normalizePhone(reqs[idx].phone_number)){
+    alert('⚠️ 入力番号が登録番号と一致しません。発注を中止します。\n登録番号: '+reqs[idx].phone_number);
+    return;
+  }
+  reqs[idx].status='ordered';
+  reqs[idx].approved_by='総務課';
+  reqs[idx].approved_at=new Date().toISOString();
+  reqs[idx].order_entered_number=inputPhone;
+  reqs[idx].order_verified=true;
+  saveReqs(reqs);
+  closeModal('modal-order');
+  renderRequests();
+  renderDashboard();
+}
+
+// ===== 照合・完了モーダル =====
+let _verifyReqId=null;
+let _lastVerifyNorm='';  // 前回チェック済みの正規化済み番号（同一入力の重複カウント防止）
+function openVerifyModal(reqId){
+  const reqs=loadReqs();
+  const r=reqs.find(x=>x.id===reqId);
+  // ★ステータス検証：発注済のみ完了モーダルを開ける（pending→done の飛ばしを防止）
+  if(!r||r.status!=='ordered'){ alert('この申請は照合・完了できる状態ではありません。\n先に「承認・発注」を行ってください。'); return; }
+  _verifyReqId=reqId;
+  _lastVerifyNorm='';
+
+  document.getElementById('verify-registered-num').textContent=r.phone_number;
+  document.getElementById('verify-input').value='';
+  document.getElementById('verify-result').innerHTML='';
+  document.getElementById('verify-mismatch-warn').classList.add('hidden');
+  document.getElementById('verify-complete-btn').disabled=true;
+  document.getElementById('verify-registered-block').className='verify-block';
+
+  openModal('modal-verify');
+  document.getElementById('verify-input').focus();
+}
+
+function onVerifyInput(){
+  if(!_verifyReqId) return;
+  const reqs=loadReqs();
+  const idx=reqs.findIndex(x=>x.id===_verifyReqId);
+  if(idx<0) return;
+  const r=reqs[idx];
+
+  const inputVal=document.getElementById('verify-input').value;
+  const normalized=normalizePhone(inputVal);
+  const registeredNorm=normalizePhone(r.phone_number);
+  const resultEl=document.getElementById('verify-result');
+  const btn=document.getElementById('verify-complete-btn');
+  const block=document.getElementById('verify-registered-block');
+  const warn3=document.getElementById('verify-mismatch-warn');
+
+  if(!inputVal.trim()){
+    resultEl.innerHTML='';
+    btn.disabled=true;
+    block.className='verify-block';
+    _lastVerifyNorm='';
+    return;
+  }
+
+  if(normalized===registeredNorm&&normalized.length>=10){
+    resultEl.innerHTML='<div class="alert alert-success" style="margin:0"><span class="alert-icon">✅</span><div><strong>番号が一致しました！</strong>  登録番号: '+esc(r.phone_number)+'</div></div>';
+    btn.disabled=false;
+    block.className='verify-block match';
+    warn3.classList.add('hidden');
+    // 一致したので不一致カウントリセット
+    reqs[idx].mismatch_count=0;
+    saveReqs(reqs);
+    _lastVerifyNorm=normalized;
+  } else if(normalized.length>=10){
+    // 10桁以上で確定的に不一致 → 前回と同じ番号なら重複カウントしない
+    if(normalized!==_lastVerifyNorm){
+      reqs[idx].mismatch_count=(reqs[idx].mismatch_count||0)+1;
+      saveReqs(reqs);
+      _lastVerifyNorm=normalized;
+    }
+    const count=reqs[idx].mismatch_count;
+
+    resultEl.innerHTML='<div class="alert alert-err" style="margin:0"><span class="alert-icon">❌</span><div>番号が一致しません。申込書を取り違えていませんか？<br><small>登録番号: '+esc(r.phone_number)+'　入力: '+esc(inputVal)+'</small></div></div>';
+    btn.disabled=true;
+    block.className='verify-block mismatch';
+
+    if(count>=3){
+      warn3.classList.remove('hidden');
+      warn3.classList.add('shake');
+      setTimeout(()=>warn3.classList.remove('shake'),500);
+    } else {
+      warn3.classList.add('hidden');
+    }
+  } else {
+    // 入力途中（10桁未満）
+    resultEl.innerHTML='';
+    btn.disabled=true;
+    block.className='verify-block';
+  }
+}
+
+function completeWithVerify(){
+  if(!_verifyReqId) return;
+  const reqs=loadReqs();
+  const idx=reqs.findIndex(x=>x.id===_verifyReqId);
+  if(idx<0) return;
+  // ★ステータス検証：発注済以外は完了にできない（承認・発注の飛ばしを防止）
+  if(reqs[idx].status!=='ordered'){
+    alert('この申請は完了にできる状態ではありません（現在: '+statusLabel(reqs[idx].status)+'）。\n先に「承認・発注」を行ってください。');
+    closeModal('modal-verify'); renderRequests(); renderDashboard(); return;
+  }
+  const inputPhone=document.getElementById('verify-input').value.trim();
+  // ★申込書番号の再照合（UIのボタン状態に頼らず、ここでも必ず確認）
+  if(normalizePhone(inputPhone)!==normalizePhone(reqs[idx].phone_number)){
+    alert('⚠️ 申込書番号が登録番号と一致しません。完了を中止します。\n登録番号: '+reqs[idx].phone_number);
+    return;
+  }
+  reqs[idx].status='done';
+  reqs[idx].entered_number=inputPhone;
+  reqs[idx].verified=true;
+  reqs[idx].verified_at=new Date().toISOString();
+  reqs[idx].mismatch_count=0;
+  saveReqs(reqs);
+  closeModal('modal-verify');
+  renderRequests();
+  renderDashboard();
+}
+
+// ===== 詳細モーダル =====
+function openDetailModal(reqId){
+  const reqs=loadReqs();
+  const r=reqs.find(x=>x.id===reqId);
+  const emps=loadEmps();
+  const emp=emps.find(e=>e.employee_id===r.employee_id);
+
+  document.getElementById('detail-title').textContent='申請詳細 - '+r.request_no;
+  const body=document.getElementById('detail-body');
+  body.innerHTML='';
+
+  // ステータスバッジ
+  const badgeDiv=document.createElement('div');
+  badgeDiv.style.cssText='margin-bottom:16px;display:flex;align-items:center;gap:10px';
+  badgeDiv.innerHTML=statusBadge(r.status);
+  body.appendChild(badgeDiv);
+
+  const rows=[
+    ['申請番号',r.request_no],
+    ['社員番号',r.employee_id],
+    ['氏名',emp?emp.name:'-'],
+    ['部署',emp?emp.dept:'-'],
+    ['登録電話番号',r.phone_number],
+    ['希望機種',r.model],
+    ['申請理由',r.reason],
+    ['希望日',r.desired_date||'-'],
+    ['備考',r.note||'-'],
+    ['申請日時',(r.created_at||'').replace('T',' ').slice(0,16)],
+  ];
+
+  if(r.status==='ordered'||r.status==='done'){
+    rows.push(['承認日時',(r.approved_at||'').replace('T',' ').slice(0,16)]);
+    rows.push(['発注時入力番号',r.order_entered_number||'-']);
+    rows.push(['番号照合（発注時）',r.order_verified?'✅ 一致確認':'未照合']);
+  }
+  if(r.status==='done'){
+    rows.push(['完了日時',(r.verified_at||'').replace('T',' ').slice(0,16)]);
+    rows.push(['申込書記載番号',r.entered_number||'-']);
+    rows.push(['番号照合（完了時）',r.verified?'✅ 一致確認':'❌ 未照合']);
+  }
+  if(r.status==='rejected'){
+    rows.push(['却下理由',r.rejection_reason||'-']);
+  }
+
+  rows.forEach(([k,v])=>{
+    const div=document.createElement('div');
+    div.className='detail-row';
+    const key=document.createElement('span');
+    key.className='detail-key';
+    key.textContent=k;
+    const val=document.createElement('span');
+    val.className='detail-val';
+    val.textContent=v||'-';
+    div.appendChild(key);
+    div.appendChild(val);
+    body.appendChild(div);
+  });
+
+  // 完了時に照合番号の一致状況を強調表示
+  if(r.status==='done'&&r.entered_number){
+    const match=normalizePhone(r.entered_number)===normalizePhone(r.phone_number);
+    const div=document.createElement('div');
+    div.className=match?'alert alert-success mt-12':'alert alert-err mt-12';
+    div.style.marginTop='16px';
+    const icon=document.createElement('span');
+    icon.className='alert-icon';
+    icon.textContent=match?'✅':'❌';
+    const txt=document.createElement('div');
+    txt.textContent=match?'登録番号と申込書番号が一致しています（照合済み）':'【注意】登録番号と申込書番号が不一致でした';
+    div.appendChild(icon);
+    div.appendChild(txt);
+    body.appendChild(div);
+  }
+
+  openModal('modal-detail');
+}
+
+// ===== 却下モーダル =====
+let _rejectReqId=null;
+function openRejectModal(reqId){
+  _rejectReqId=reqId;
+  document.getElementById('reject-reason').value='';
+  document.getElementById('reject-err').classList.add('hidden');
+  openModal('modal-reject');
+}
+
+function confirmReject(){
+  const reason=document.getElementById('reject-reason').value.trim();
+  const errEl=document.getElementById('reject-err');
+  if(!reason){
+    errEl.textContent='却下理由を入力してください';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  const reqs=loadReqs();
+  const idx=reqs.findIndex(x=>x.id===_rejectReqId);
+  if(idx<0) return;
+  // ★ステータス検証：申請中のみ却下できる
+  if(reqs[idx].status!=='pending'){
+    errEl.textContent='この申請は却下できる状態ではありません（現在: '+statusLabel(reqs[idx].status)+'）';
+    errEl.classList.remove('hidden'); return;
+  }
+  // ★最終確認（誤操作防止）
+  if(!confirm('申請「'+reqs[idx].request_no+'」を却下します。よろしいですか？\nこの操作は取り消せません。')) return;
+  reqs[idx].status='rejected';
+  reqs[idx].rejection_reason=reason;
+  saveReqs(reqs);
+  closeModal('modal-reject');
+  renderRequests();
+  renderDashboard();
+}
+
+// ===== モーダル汎用 =====
+function openModal(id){
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('open');
+}
+// 背景クリックで閉じる
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{
+    if(e.target===bg) bg.classList.remove('open');
+  });
+});
+
+// ===== ユーティリティ =====
+function showMsg(el,text,type){
+  const cls={success:'alert-success',err:'alert-err',warn:'alert-warn',info:'alert-info'}[type]||'alert-info';
+  const icon={success:'✅',err:'❌',warn:'⚠️',info:'ℹ️'}[type]||'ℹ️';
+  el.innerHTML='';
+  const div=document.createElement('div');
+  div.className='alert '+cls;
+  const span=document.createElement('span');
+  span.className='alert-icon';
+  span.textContent=icon;
+  const txt=document.createElement('div');
+  txt.textContent=text;
+  div.appendChild(span);
+  div.appendChild(txt);
+  el.appendChild(div);
+  setTimeout(()=>{el.innerHTML='';},5000);
+}
+</script>
+</body>
+</html>
