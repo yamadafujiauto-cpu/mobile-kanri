@@ -223,6 +223,12 @@ textarea{min-height:80px;resize:vertical}
     <div class="nav" data-page="requests">
       <span class="nav-ic">📋</span>申請一覧・管理
     </div>
+    <div class="nav" data-page="vendors">
+      <span class="nav-ic">🏢</span>依頼先（発注先）
+    </div>
+    <div class="nav" data-page="help">
+      <span class="nav-ic">📖</span>使い方
+    </div>
     <div class="sb-user">
       <div class="sb-user-av">総</div>
       <div class="sb-user-info">
@@ -495,6 +501,109 @@ textarea{min-height:80px;resize:vertical}
       </div>
     </div>
 
+    <!-- ⑤ 依頼先（発注先） -->
+    <div class="page" id="page-vendors">
+      <div class="ph">
+        <h2>🏢 依頼先（発注先）</h2>
+        <p>機種変更や携帯の追加を依頼する業者・ショップの連絡先を登録します</p>
+      </div>
+      <div class="card">
+        <div class="ch">
+          <span class="ct">登録済みの依頼先</span>
+          <button class="btn btn-primary" onclick="openAddVendorModal()">➕ 依頼先を追加</button>
+        </div>
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ️</span>
+          <div>ここに登録した連絡先は「承認・発注」画面にも表示され、発注時にすぐ確認できます。</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>名称（店名・会社名）</th>
+              <th>担当者</th>
+              <th>電話番号</th>
+              <th>メールアドレス</th>
+              <th>備考</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="vendor-tbody"></tbody>
+        </table>
+        <div id="vendor-count" class="hint mt-12"></div>
+      </div>
+    </div>
+
+    <!-- ⑥ 使い方マニュアル -->
+    <div class="page" id="page-help">
+      <div class="ph">
+        <h2>📖 使い方マニュアル</h2>
+        <p>社用携帯管理システムの使い方</p>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">🎯 このシステムの目的</div>
+        <p style="font-size:13.5px;line-height:1.9;color:#334155">
+          機種変更や新規契約のときに、<strong>間違った社員の電話番号で発注してしまう事故を防ぐ</strong>ためのシステムです。<br>
+          「申請 → 承認・発注 → 申込書の番号を照合して完了」という流れで進め、各段階で<strong>登録番号と入力番号を自動照合</strong>します。番号が一致しないと次に進めないので、取り違えを未然に防げます。
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">🗺️ 画面の説明</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p><strong>🏠 ダッシュボード</strong>：件数の概要、<strong>契約更新が近い社員のアラート</strong>、直近の申請を表示。</p>
+          <p><strong>👥 社員マスタ</strong>：社員と携帯番号の一覧。CSV取込・バックアップ・追加/編集/削除。</p>
+          <p><strong>📝 機種変更申請</strong>：社員番号を入れると氏名・番号が自動表示。確認チェックを入れて申請。</p>
+          <p><strong>📋 申請一覧・管理</strong>：申請を「承認・発注」「照合・完了」「却下」する画面。</p>
+          <p><strong>🏢 依頼先（発注先）</strong>：発注を依頼する業者・ショップの連絡先を登録。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">📋 基本の流れ（4ステップ）</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p><strong>① 申請をつくる</strong>：「機種変更申請」で社員番号を入力 → 表示された氏名・番号が正しいかチェック → 希望機種・理由を入れて送信。</p>
+          <p><strong>② 承認・発注する</strong>：「申請一覧」で対象の「承認・発注」を押す → <strong>発注に使う電話番号を入力</strong> → 登録番号と一致したら確定。依頼先の連絡先もこの画面に出ます。</p>
+          <p><strong>③ 申込書を照合して完了</strong>：申込書が届いたら「照合・完了」を押す → <strong>申込書の番号を入力</strong> → 登録番号と一致したら完了。</p>
+          <p><strong>④ 完了</strong>：履歴として残ります。詳細から照合結果を確認できます。</p>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #3b82f6">
+        <div class="ct" style="margin-bottom:10px">🔍 電話番号の照合（いちばん大事）</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p>発注時・完了時に番号を入力すると、登録番号と<strong>自動で照合</strong>します。ハイフン・スペース・全角は気にせず入力してOK（自動で揃えて比べます）。</p>
+          <p>✅ 一致 → 次に進めます。<br>❌ 不一致 → 進めません。「申込書を取り違えていませんか？」と警告。<strong>3回連続で間違うと強い警告</strong>が出ます。</p>
+          <p style="color:#991b1b"><strong>※不一致のままでは絶対に完了できない仕組みです。</strong>慌てず申込書をもう一度確認してください。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">📥 データの取込（CSV）</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p>「社員マスタ」のCSVインポート欄に、<strong>UTF-8形式のCSV</strong>をドラッグ＆ドロップ。列は <code>社員番号,氏名,部署,携帯番号,端末,契約更新</code>。</p>
+          <p>同じ社員番号があれば上書き更新、無ければ新規追加されます。</p>
+        </div>
+      </div>
+
+      <div class="card" style="border-left:4px solid #f59e0b">
+        <div class="ct" style="margin-bottom:10px">💾 バックアップ（必ず定期的に！）</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p>このシステムのデータは<strong>このPC・このブラウザの中だけ</strong>に保存されます。PCの故障やブラウザのデータ削除で<strong>消えてしまう</strong>ことがあります。</p>
+          <p>「社員マスタ」の<strong>「💾 バックアップを書き出す」を週1回ほど押して</strong>、出てきたファイルを社内共有フォルダ等に保管してください。<br>戻したいときは「📥 バックアップから復元」で読み込みます。</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="ct" style="margin-bottom:10px">❓ よくある質問</div>
+        <div style="font-size:13.5px;line-height:1.9;color:#334155">
+          <p><strong>Q. 他のPCでも同じデータが見える？</strong><br>A. いいえ。データは各PCのブラウザ内に別々に保存されます。共有したい時はバックアップを書き出して相手に渡し、相手が「復元」で読み込みます。</p>
+          <p><strong>Q. パスコードは？</strong><br>A. <code>fuji9115</code>。これは簡易的な目隠しです。Apple IDやパスワードなど重要情報はこのシステムには入れないでください。</p>
+          <p><strong>Q. 間違って削除した</strong><br>A. 削除直後に画面下に出る「元に戻す」を押せば戻せます。</p>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /main -->
 </div><!-- /app -->
 
@@ -545,6 +654,45 @@ textarea{min-height:80px;resize:vertical}
   </div>
 </div>
 
+<!-- ===== モーダル: 依頼先 追加・編集 ===== -->
+<div class="modal-bg" id="modal-vendor">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="modal-vendor-title">依頼先を追加</h3>
+      <button class="modal-close" onclick="closeModal('modal-vendor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="fg">
+        <label class="fl">名称（店名・会社名）<span class="req">*</span></label>
+        <input type="text" id="vendor-edit-name" placeholder="例: ドコモショップ○○店">
+      </div>
+      <div class="form-row">
+        <div class="fg">
+          <label class="fl">担当者</label>
+          <input type="text" id="vendor-edit-contact" placeholder="例: 山本 様">
+        </div>
+        <div class="fg">
+          <label class="fl">電話番号</label>
+          <input type="tel" id="vendor-edit-phone" placeholder="例: 052-123-4567">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">メールアドレス</label>
+        <input type="text" id="vendor-edit-email" placeholder="例: shop@example.co.jp">
+      </div>
+      <div class="fg">
+        <label class="fl">備考</label>
+        <input type="text" id="vendor-edit-note" placeholder="例: 法人窓口・平日10-18時">
+      </div>
+      <div id="modal-vendor-err" class="alert alert-err hidden"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vendor')">キャンセル</button>
+      <button class="btn btn-primary" id="vendor-save-btn" onclick="saveVendor()">保存する</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== モーダル: 承認・発注 ===== -->
 <div class="modal-bg" id="modal-order">
   <div class="modal">
@@ -558,6 +706,7 @@ textarea{min-height:80px;resize:vertical}
         <div>発注時に使用した携帯電話番号を入力してください。登録番号と照合します。</div>
       </div>
       <div id="order-emp-info" style="background:#f8fafc;border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px"></div>
+      <div id="order-vendor-ref" style="margin-bottom:16px"></div>
       <div class="fg">
         <label class="fl">発注に使用した電話番号<span class="req">*</span></label>
         <input type="tel" id="order-phone-input" placeholder="例: 090-1234-5678" oninput="checkOrderPhone()">
@@ -654,6 +803,7 @@ textarea{min-height:80px;resize:vertical}
 const PW = 'fuji9115';
 const LS_EMP = 'mobile_kanri_employees';
 const LS_REQ = 'mobile_kanri_requests';
+const LS_VENDORS = 'mobile_kanri_vendors';
 const LS_BACKUP_TS = 'mobile_kanri_last_backup';
 // ★本番運用を始めたら false にすると、初回のサンプルデータ登録を行いません
 const ENABLE_SAMPLE_DATA = true;
@@ -713,6 +863,12 @@ function loadReqs(){
 }
 function saveReqs(data){
   localStorage.setItem(LS_REQ,JSON.stringify(data));
+}
+function loadVendors(){
+  try{return JSON.parse(localStorage.getItem(LS_VENDORS)||'[]');}catch{return[];}
+}
+function saveVendors(data){
+  localStorage.setItem(LS_VENDORS,JSON.stringify(data));
 }
 
 // ===== サンプルデータ初期化 =====
@@ -785,6 +941,7 @@ function navigate(page){
   if(page==='employees') renderEmployees();
   if(page==='new-request') resetNewRequestPage();
   if(page==='requests') renderRequests();
+  if(page==='vendors') renderVendors();
 }
 
 document.querySelectorAll('.nav').forEach(n=>{
@@ -1139,7 +1296,8 @@ function exportBackup(){
     _version:1,
     exported_at:new Date().toISOString(),
     employees:loadEmps(),
-    requests:loadReqs()
+    requests:loadReqs(),
+    vendors:loadVendors()
   };
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
   const a=document.createElement('a');
@@ -1165,7 +1323,8 @@ function importBackup(file){
     if(!confirm('現在のデータを、バックアップ（'+ver+'版・社員'+data.employees.length+'件/申請'+data.requests.length+'件）で上書きします。\n\n※現在このPCにあるデータは消えます。よろしいですか？')){ return; }
     saveEmps(data.employees);
     saveReqs(data.requests);
-    renderEmployees(); renderRequests(); renderDashboard();
+    saveVendors(Array.isArray(data.vendors)?data.vendors:[]);
+    renderEmployees(); renderRequests(); renderVendors(); renderDashboard();
     showMsg(msgEl,'バックアップから復元しました（社員'+data.employees.length+'件 / 申請'+data.requests.length+'件）','success');
   };
   reader.readAsText(file,'UTF-8');
@@ -1185,6 +1344,124 @@ function updateBackupStatus(){
   const days=Math.floor((Date.now()-new Date(ts).getTime())/86400000);
   el.textContent='最終バックアップ: '+(days<=0?'今日':days+'日前')+'（'+ts.slice(0,10)+'）';
   el.style.color=days>=7?'#b45309':'#64748b';
+}
+
+// ===== ⑤ 依頼先（発注先） =====
+let _lastDeletedVendor=null;
+function renderVendors(){
+  const list=loadVendors();
+  const tbody=document.getElementById('vendor-tbody');
+  tbody.innerHTML='';
+  if(list.length===0){
+    const tr=document.createElement('tr');
+    const td=document.createElement('td');
+    td.colSpan=6; td.className='tbl-empty';
+    td.textContent='依頼先がまだ登録されていません。「➕ 依頼先を追加」から登録してください。';
+    tr.appendChild(td); tbody.appendChild(tr);
+  } else {
+    list.forEach(v=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=
+        '<td style="font-weight:600">'+esc(v.name)+'</td>'+
+        '<td>'+esc(v.contact||'-')+'</td>'+
+        '<td style="font-family:monospace">'+esc(v.phone||'-')+'</td>'+
+        '<td>'+esc(v.email||'-')+'</td>'+
+        '<td>'+esc(v.note||'-')+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn btn-ghost btn-xs" onclick="openEditVendorModal(\''+esc(v.id)+'\')">編集</button> '+
+        '<button class="btn btn-danger btn-xs" onclick="deleteVendor(\''+esc(v.id)+'\')">削除</button></td>';
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('vendor-count').textContent=list.length+'件';
+}
+
+// 発注モーダルに依頼先の連絡先を表示（読み取り専用）
+function renderVendorRef(el){
+  if(!el) return;
+  el.innerHTML='';
+  const list=loadVendors();
+  if(list.length===0) return;
+  const box=document.createElement('div');
+  box.style.cssText='background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px;font-size:12.5px';
+  const h=document.createElement('div');
+  h.style.cssText='font-weight:700;color:#1d4ed8;margin-bottom:6px';
+  h.textContent='🏢 依頼先（発注の連絡先）';
+  box.appendChild(h);
+  list.forEach(v=>{
+    const line=document.createElement('div');
+    line.style.cssText='padding:2px 0';
+    const parts=[v.name];
+    if(v.contact) parts.push(v.contact);
+    if(v.phone) parts.push('☎ '+v.phone);
+    if(v.email) parts.push('✉ '+v.email);
+    line.textContent=parts.join('　/　');
+    box.appendChild(line);
+  });
+  el.appendChild(box);
+}
+
+function openAddVendorModal(){
+  document.getElementById('modal-vendor-title').textContent='依頼先を追加';
+  document.getElementById('vendor-save-btn').dataset.mode='add';
+  document.getElementById('vendor-save-btn').dataset.editId='';
+  ['name','contact','phone','email','note'].forEach(k=>{document.getElementById('vendor-edit-'+k).value='';});
+  document.getElementById('modal-vendor-err').classList.add('hidden');
+  openModal('modal-vendor');
+}
+
+function openEditVendorModal(id){
+  const v=loadVendors().find(x=>x.id===id);
+  if(!v) return;
+  document.getElementById('modal-vendor-title').textContent='依頼先を編集';
+  document.getElementById('vendor-save-btn').dataset.mode='edit';
+  document.getElementById('vendor-save-btn').dataset.editId=id;
+  document.getElementById('vendor-edit-name').value=v.name||'';
+  document.getElementById('vendor-edit-contact').value=v.contact||'';
+  document.getElementById('vendor-edit-phone').value=v.phone||'';
+  document.getElementById('vendor-edit-email').value=v.email||'';
+  document.getElementById('vendor-edit-note').value=v.note||'';
+  document.getElementById('modal-vendor-err').classList.add('hidden');
+  openModal('modal-vendor');
+}
+
+function saveVendor(){
+  const mode=document.getElementById('vendor-save-btn').dataset.mode;
+  const editId=document.getElementById('vendor-save-btn').dataset.editId;
+  const name=document.getElementById('vendor-edit-name').value.trim();
+  const contact=document.getElementById('vendor-edit-contact').value.trim();
+  const phone=document.getElementById('vendor-edit-phone').value.trim();
+  const email=document.getElementById('vendor-edit-email').value.trim();
+  const note=document.getElementById('vendor-edit-note').value.trim();
+  const errEl=document.getElementById('modal-vendor-err');
+  if(!name){ errEl.textContent='名称（店名・会社名）は必須です'; errEl.classList.remove('hidden'); return; }
+  const list=loadVendors();
+  if(mode==='add'){
+    list.push({id:genId(),name,contact,phone,email,note,updated_at:new Date().toISOString()});
+  } else {
+    const idx=list.findIndex(x=>x.id===editId);
+    if(idx<0) return;
+    list[idx]={...list[idx],name,contact,phone,email,note,updated_at:new Date().toISOString()};
+  }
+  saveVendors(list);
+  closeModal('modal-vendor');
+  renderVendors();
+}
+
+function deleteVendor(id){
+  const list=loadVendors();
+  const v=list.find(x=>x.id===id);
+  if(!v) return;
+  if(!confirm('依頼先「'+v.name+'」を削除しますか？')) return;
+  _lastDeletedVendor=v;
+  saveVendors(list.filter(x=>x.id!==id));
+  renderVendors();
+  showUndo('依頼先「'+v.name+'」を削除しました。',()=>{
+    if(!_lastDeletedVendor) return;
+    const cur=loadVendors();
+    if(!cur.find(x=>x.id===_lastDeletedVendor.id)){ cur.push(_lastDeletedVendor); saveVendors(cur); }
+    _lastDeletedVendor=null;
+    renderVendors();
+  });
 }
 
 // ===== ③ 機種変更申請 =====
@@ -1474,6 +1751,7 @@ function openOrderModal(reqId){
     infoEl.appendChild(div);
   });
 
+  renderVendorRef(document.getElementById('order-vendor-ref'));
   document.getElementById('order-phone-input').value='';
   document.getElementById('order-phone-result').innerHTML='';
   document.getElementById('order-confirm-btn').disabled=true;
