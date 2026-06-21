@@ -464,6 +464,11 @@ textarea{min-height:80px;resize:vertical}
           </button>
         </div>
         <div id="req-submit-msg" style="margin-top:12px"></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0;font-size:12px;color:#64748b">
+          📧 上司への通知先メール：<strong id="boss-email-label">未設定</strong>
+          <button type="button" class="btn btn-ghost btn-xs" style="margin-left:6px" onclick="changeBossEmail()">設定 / 変更</button>
+          <div style="margin-top:4px;color:#94a3b8">※申請を送信すると「上司にメールで知らせる」ボタンが出ます。押すとメールの下書きが開きます（送信は手動）。</div>
+        </div>
       </div>
     </div>
 
@@ -893,10 +898,13 @@ function saveVendors(data){
   localStorage.setItem(LS_VENDORS,JSON.stringify(data));
 }
 function loadConfig(){
-  try{
-    const c=JSON.parse(localStorage.getItem(LS_CONFIG)||'{}');
-    return {renewCycle:(c.renewCycle!=null?c.renewCycle:24), alertMonths:(c.alertMonths!=null?c.alertMonths:3)};
-  }catch{ return {renewCycle:24, alertMonths:3}; }
+  let c={};
+  try{ c=JSON.parse(localStorage.getItem(LS_CONFIG)||'{}')||{}; }catch{ c={}; }
+  return {
+    renewCycle:(c.renewCycle!=null?c.renewCycle:24),
+    alertMonths:(c.alertMonths!=null?c.alertMonths:3),
+    bossEmail:(c.bossEmail||'')
+  };
 }
 function saveConfig(c){ localStorage.setItem(LS_CONFIG,JSON.stringify(c)); }
 
@@ -1588,6 +1596,7 @@ function resetNewRequestPage(){
   document.getElementById('req-note').value='';
   document.getElementById('req-submit-btn').disabled=true;
   document.getElementById('req-submit-msg').innerHTML='';
+  updateBossEmailLabel();
 }
 
 // 社員番号の正規化（全角数字→半角・前後空白除去）
@@ -1725,6 +1734,49 @@ function clearNewRequestForm(){
   resetNewRequestPage();
 }
 
+// ===== 上司へのメール通知（mailtoで下書きを生成） =====
+function getBossEmail(){ return (loadConfig().bossEmail||'').trim(); }
+function setBossEmailPrompt(){
+  const cur=getBossEmail();
+  const v=prompt('上司（通知先）のメールアドレスを入力してください。\n一度入力すると次回から記憶されます。', cur);
+  if(v===null) return cur;
+  const cfg=loadConfig(); cfg.bossEmail=v.trim(); saveConfig(cfg);
+  return cfg.bossEmail;
+}
+function changeBossEmail(){ setBossEmailPrompt(); updateBossEmailLabel(); }
+function updateBossEmailLabel(){
+  const el=document.getElementById('boss-email-label');
+  if(!el) return;
+  const m=getBossEmail();
+  el.textContent=m||'未設定';
+  el.style.color=m?'#0f172a':'#b45309';
+}
+function notifyBossByMail(reqId){
+  let to=getBossEmail();
+  if(!to) to=setBossEmailPrompt();
+  if(!to){ alert('通知先メールが未設定のため、メールを作成できませんでした。'); return; }
+  const r=loadReqs().find(x=>x.id===reqId);
+  if(!r) return;
+  const emp=loadEmps().find(e=>e.employee_id===r.employee_id);
+  const subject='【携帯 機種変更申請】'+r.request_no+'  '+(emp?emp.name:r.employee_id);
+  const body=[
+    'お疲れさまです。',
+    '社用携帯の機種変更申請を登録しました。ご確認をお願いします。',
+    '',
+    '■申請番号：'+r.request_no,
+    '■対象社員：'+(emp?(emp.name+'（社員番号 '+r.employee_id+'）'):r.employee_id),
+    '■部署　　：'+(emp?emp.dept:'-'),
+    '■登録番号：'+r.phone_number,
+    '■希望機種：'+r.model,
+    '■申請理由：'+r.reason,
+    '■希望日　：'+(r.desired_date||'-'),
+    '■備考　　：'+(r.note||'-'),
+    '',
+    '※社用携帯管理システムで作成した下書きです。'
+  ].join('\r\n');
+  window.location.href='mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
 function submitRequest(){
   if(!_lookupEmp) return;
   const model=document.getElementById('req-model').value.trim();
@@ -1755,28 +1807,42 @@ function submitRequest(){
   saveReqs(reqs);
 
   const msgEl=document.getElementById('req-submit-msg');
-  const div=document.createElement('div');
-  div.className='alert alert-success';
-  const icon=document.createElement('span');
-  icon.className='alert-icon';
-  icon.textContent='✅';
-  const txt=document.createElement('div');
-  const strong=document.createElement('strong');
-  strong.textContent='申請を受け付けました。';
-  txt.appendChild(strong);
-  const sub=document.createElement('div');
-  sub.textContent='申請番号: '+req.request_no;
-  sub.style.fontSize='12px';
-  txt.appendChild(sub);
-  div.appendChild(icon);
-  div.appendChild(txt);
   msgEl.innerHTML='';
-  msgEl.appendChild(div);
+  const box=document.createElement('div');
+  box.className='alert alert-success';
+  box.style.display='block';
+  const head=document.createElement('div');
+  const strong=document.createElement('strong');
+  strong.textContent='✅ 申請を受け付けました。';
+  head.appendChild(strong);
+  const sub=document.createElement('span');
+  sub.style.cssText='font-size:12px;margin-left:8px';
+  sub.textContent='申請番号: '+req.request_no;
+  head.appendChild(sub);
+  box.appendChild(head);
 
-  setTimeout(()=>{
-    resetNewRequestPage();
-    navigate('requests');
-  },1500);
+  const noteLine=document.createElement('div');
+  noteLine.style.cssText='font-size:12px;color:#475569;margin-top:6px';
+  const boss=getBossEmail();
+  noteLine.textContent=boss?('上司への通知先: '+boss):'上司への通知先メールは未設定です（ボタンを押すと設定できます）。';
+  box.appendChild(noteLine);
+
+  const btnRow=document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:10px;margin-top:12px;flex-wrap:wrap';
+  const mailBtn=document.createElement('button');
+  mailBtn.type='button';
+  mailBtn.className='btn btn-primary btn-sm';
+  mailBtn.textContent='📧 上司にメールで知らせる';
+  mailBtn.onclick=()=>notifyBossByMail(req.id);
+  const listBtn=document.createElement('button');
+  listBtn.type='button';
+  listBtn.className='btn btn-ghost btn-sm';
+  listBtn.textContent='申請一覧へ →';
+  listBtn.onclick=()=>{ resetNewRequestPage(); navigate('requests'); };
+  btnRow.appendChild(mailBtn);
+  btnRow.appendChild(listBtn);
+  box.appendChild(btnRow);
+  msgEl.appendChild(box);
 }
 
 // ===== ④ 申請一覧 =====
