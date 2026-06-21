@@ -465,9 +465,11 @@ textarea{min-height:80px;resize:vertical}
         </div>
         <div id="req-submit-msg" style="margin-top:12px"></div>
         <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0;font-size:12px;color:#64748b">
-          📧 上司への通知先メール：<strong id="boss-email-label">未設定</strong>
-          <button type="button" class="btn btn-ghost btn-xs" style="margin-left:6px" onclick="changeBossEmail()">設定 / 変更</button>
-          <div style="margin-top:4px;color:#94a3b8">※複数の宛先はカンマ区切りで入力（例: a@x.com, b@y.com）。申請送信後の「上司にメールで知らせる」ボタンで下書きが開きます（送信は手動）。</div>
+          <div>📤 送信元Gmail：<strong id="gmail-from-label">未設定</strong>
+            <button type="button" class="btn btn-ghost btn-xs" style="margin-left:6px" onclick="changeGmailFrom()">設定 / 変更</button></div>
+          <div style="margin-top:6px">📧 通知先（送り先）：<strong id="boss-email-label">未設定</strong>
+            <button type="button" class="btn btn-ghost btn-xs" style="margin-left:6px" onclick="changeBossEmail()">設定 / 変更</button></div>
+          <div style="margin-top:4px;color:#94a3b8">※申請送信後の「上司にメールで知らせる」ボタンを押すと、送信元Gmailの作成画面が宛先入りで開きます（送信は手動）。宛先はカンマ区切りで複数可。</div>
         </div>
       </div>
     </div>
@@ -903,7 +905,8 @@ function loadConfig(){
   return {
     renewCycle:(c.renewCycle!=null?c.renewCycle:24),
     alertMonths:(c.alertMonths!=null?c.alertMonths:3),
-    bossEmail:(c.bossEmail||'')
+    bossEmail:(c.bossEmail||''),
+    gmailFrom:(c.gmailFrom||'')
   };
 }
 function saveConfig(c){ localStorage.setItem(LS_CONFIG,JSON.stringify(c)); }
@@ -1597,6 +1600,7 @@ function resetNewRequestPage(){
   document.getElementById('req-submit-btn').disabled=true;
   document.getElementById('req-submit-msg').innerHTML='';
   updateBossEmailLabel();
+  updateGmailFromLabel();
 }
 
 // 社員番号の正規化（全角数字→半角・前後空白除去）
@@ -1739,7 +1743,7 @@ function cleanEmails(s){ return String(s||'').split(/[,;\s]+/).map(x=>x.trim()).
 function getBossEmail(){ return (loadConfig().bossEmail||'').trim(); }
 function setBossEmailPrompt(){
   const cur=getBossEmail();
-  const v=prompt('通知先のメールアドレスを入力してください。\n複数に送る場合はカンマ「,」で区切ります。\n（例: fujikeirisoumu@gmail.com, m-tsubaki@fuji-auto-ind.co.jp）\n一度入力すると次回から記憶されます。', cur);
+  const v=prompt('通知先（送り先）のメールアドレスを入力してください。\n複数に送る場合はカンマ「,」で区切ります。\n（例: m-tsubaki@fuji-auto-ind.co.jp）\n一度入力すると次回から記憶されます。', cur);
   if(v===null) return cur;
   const cfg=loadConfig(); cfg.bossEmail=cleanEmails(v).join(', '); saveConfig(cfg);
   return cfg.bossEmail;
@@ -1751,6 +1755,23 @@ function updateBossEmailLabel(){
   const m=getBossEmail();
   el.textContent=m||'未設定';
   el.style.color=m?'#0f172a':'#b45309';
+}
+// 送信元Gmail（このアカウントでGmail作成画面を開く）
+function getGmailFrom(){ return (loadConfig().gmailFrom||'').trim(); }
+function setGmailFromPrompt(){
+  const cur=getGmailFrom();
+  const v=prompt('送信元のGmailアドレスを入力してください。\nこのアカウントでGmailの作成画面が開きます（ブラウザでログイン済みである必要があります）。\n例: fujikeirisoumu@gmail.com\n※空欄にすると、PCの既定メールソフトで開きます。', cur);
+  if(v===null) return cur;
+  const cfg=loadConfig(); cfg.gmailFrom=v.trim(); saveConfig(cfg);
+  return cfg.gmailFrom;
+}
+function changeGmailFrom(){ setGmailFromPrompt(); updateGmailFromLabel(); }
+function updateGmailFromLabel(){
+  const el=document.getElementById('gmail-from-label');
+  if(!el) return;
+  const m=getGmailFrom();
+  el.textContent=m||'未設定（PCの既定メールソフトで開く）';
+  el.style.color=m?'#0f172a':'#64748b';
 }
 function notifyBossByMail(reqId){
   let raw=getBossEmail();
@@ -1777,7 +1798,17 @@ function notifyBossByMail(reqId){
     '',
     '※社用携帯管理システムで作成した下書きです。'
   ].join('\r\n');
-  window.location.href='mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  const gmailFrom=getGmailFrom();
+  if(gmailFrom){
+    // 送信元Gmailの作成画面を開く（送信元＝gmailFrom／宛先＝to）
+    const url='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+
+              '&su='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body)+
+              '&authuser='+encodeURIComponent(gmailFrom);
+    window.open(url,'_blank');
+  } else {
+    // 既定メールソフトで開く
+    window.location.href='mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  }
 }
 
 function submitRequest(){
