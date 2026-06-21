@@ -1600,7 +1600,12 @@ function inputEmpDigits(s){
 }
 function findEmpByNo(digits){
   if(!digits) return null;
-  return loadEmps().find(e=>normEmpId(e.employee_id)===digits)||null;
+  const emps=loadEmps();
+  // 1) 社員番号の完全一致（全角→半角）
+  let emp=emps.find(e=>normEmpId(e.employee_id)===digits);
+  if(emp) return emp;
+  // 2) 番号が無い共用端末（No43 等）も、表示番号の数字部分（43）で探せるように
+  return emps.find(e=>normEmpId(e.employee_id).replace(/\D/g,'')===digits)||null;
 }
 
 function onEmpIdInput(){
