@@ -467,7 +467,7 @@ textarea{min-height:80px;resize:vertical}
         <div style="margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0;font-size:12px;color:#64748b">
           📧 上司への通知先メール：<strong id="boss-email-label">未設定</strong>
           <button type="button" class="btn btn-ghost btn-xs" style="margin-left:6px" onclick="changeBossEmail()">設定 / 変更</button>
-          <div style="margin-top:4px;color:#94a3b8">※申請を送信すると「上司にメールで知らせる」ボタンが出ます。押すとメールの下書きが開きます（送信は手動）。</div>
+          <div style="margin-top:4px;color:#94a3b8">※複数の宛先はカンマ区切りで入力（例: a@x.com, b@y.com）。申請送信後の「上司にメールで知らせる」ボタンで下書きが開きます（送信は手動）。</div>
         </div>
       </div>
     </div>
@@ -1735,12 +1735,13 @@ function clearNewRequestForm(){
 }
 
 // ===== 上司へのメール通知（mailtoで下書きを生成） =====
+function cleanEmails(s){ return String(s||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean); }
 function getBossEmail(){ return (loadConfig().bossEmail||'').trim(); }
 function setBossEmailPrompt(){
   const cur=getBossEmail();
-  const v=prompt('上司（通知先）のメールアドレスを入力してください。\n一度入力すると次回から記憶されます。', cur);
+  const v=prompt('通知先のメールアドレスを入力してください。\n複数に送る場合はカンマ「,」で区切ります。\n（例: fujikeirisoumu@gmail.com, m-tsubaki@fuji-auto-ind.co.jp）\n一度入力すると次回から記憶されます。', cur);
   if(v===null) return cur;
-  const cfg=loadConfig(); cfg.bossEmail=v.trim(); saveConfig(cfg);
+  const cfg=loadConfig(); cfg.bossEmail=cleanEmails(v).join(', '); saveConfig(cfg);
   return cfg.bossEmail;
 }
 function changeBossEmail(){ setBossEmailPrompt(); updateBossEmailLabel(); }
@@ -1752,9 +1753,11 @@ function updateBossEmailLabel(){
   el.style.color=m?'#0f172a':'#b45309';
 }
 function notifyBossByMail(reqId){
-  let to=getBossEmail();
-  if(!to) to=setBossEmailPrompt();
-  if(!to){ alert('通知先メールが未設定のため、メールを作成できませんでした。'); return; }
+  let raw=getBossEmail();
+  if(!cleanEmails(raw).length) raw=setBossEmailPrompt();
+  const list=cleanEmails(raw);
+  if(!list.length){ alert('通知先メールが未設定のため、メールを作成できませんでした。'); return; }
+  const to=list.join(',');
   const r=loadReqs().find(x=>x.id===reqId);
   if(!r) return;
   const emp=loadEmps().find(e=>e.employee_id===r.employee_id);
